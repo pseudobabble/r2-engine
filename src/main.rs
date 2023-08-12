@@ -1,158 +1,200 @@
-use std::any::Any;
-use std::ops::Add;
-use std::rc::Rc;
+use self::AstNode::*;
+use pest::error::Error;
+use pest_derive::Parser;
+use std::ffi::CString;
 
-extern crate uom;
+#[derive(Parser)]
+#[grammar = "test.r2"]
+pub struct Route2Parser;
 
-use uom::si::f32::*;
-use uom::si::length::kilometer;
-use uom::si::time::second;
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum MonadicVerb {
+    Increment,
+    Square,
+    Negate,
+    Reciprocal,
+    Tally,
+    Ceiling,
+    ShapeOf,
+}
 
-/// (average_wage_per_unit_calendar_time * (avoided_days_of_lost_due_to_anxiety + avoided_days_of_lost_due_to_depression))
-///  * ((proportion_proxy_benefit_attributed_to_wellbeing_anxiety + proportion_proxy_benefit_attributed_to_wellbeing_depression) / 2)
-///  * imp_employee_time_in_mental_wellbeing_programmes
-
-/// (average_wage_per_unit_calendar_time[currency] * (avoided_days_of_lost_due_to_anxiety[time] + avoided_days_of_lost_due_to_depression[time]))
-///  * ((proportion_proxy_benefit_attributed_to_wellbeing_anxiety[float] + proportion_proxy_benefit_attributed_to_wellbeing_depression[float]) / 2)
-///  * imp_employee_time_in_mental_wellbeing_programmes[time]
-
-/// average_wage[float] = total_wage[float] / number_of_employees[int]
-/// average_wage_per_unit_calendar_time =
-
-#[derive(Debug)]
-enum Operator {
-    Add,
-    Subtract,
-    Multiply,
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum DyadicVerb {
+    Plus,
+    Times,
+    LessThan,
+    LargerThan,
+    Equal,
+    Minus,
     Divide,
-    Identity,
+    Power,
+    Residue,
+    Copy,
+    LargerOf,
+    LargerOrEqual,
+    Shape,
 }
 
-#[derive(Debug)]
-pub struct Variable {
-    name: String,
-    value: f32,
+#[derive(PartialEq, Debug, Clone)]
+pub enum AstNode {
+    Print(Box<AstNode>),
+    Integer(i32),
+    DoublePrecisionFloat(f64),
+    MonadicOp {
+        verb: MonadicVerb,
+        expr: Box<AstNode>,
+    },
+    DyadicOp {
+        verb: DyadicVerb,
+        lhs: Box<AstNode>,
+        rhs: Box<AstNode>,
+    },
+    Terms(Vec<AstNode>),
+    IsGlobal {
+        ident: String,
+        expr: Box<AstNode>,
+    },
+    Ident(String),
+    Str(CString),
 }
 
-impl Variable {
-    fn to_expression(self) -> Expression<Variable> {
-        Expression {
-            lhs: None,
-            rhs: self,
-            operator: Operator::Identity,
-        }
-    }
-}
+pub fn parse(source: &str) -> Result<Vec<AstNode>, Error<Rule>> {
+    let mut ast = vec![];
 
-impl Add<Variable> for Variable {
-    type Output = Expression<Variable>;
-
-    fn add(self, _rhs: Variable) -> Expression<Variable> {
-        Expression {
-            lhs: Some(self),
-            rhs: _rhs,
-            operator: Operator::Add,
-        }
-    }
-}
-
-impl Add<Expression<Variable>> for Variable {
-    type Output = Expression<Variable>;
-
-    fn add(self, _rhs: Expression<Variable>) -> Expression<Variable> {
-        Expression {
-            lhs: Some(Variable {
-                name: "_".to_string(),
-                value: self.value + _rhs.rhs.value,
-            }),
-            rhs: _rhs.rhs,
-            operator: Operator::Add,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Expression<T> {
-    lhs: Option<T>,
-    rhs: T,
-    operator: Operator,
-}
-
-impl Add for Expression<Variable> {
-    type Output = Expression<Variable>;
-
-    fn add(self, _rhs: Expression<Variable>) -> Expression<Variable> {
-        let rhs_lhs_value = match _rhs.lhs {
-            Some(value) => value.value,
-            None => 0.0,
-        };
-        Expression {
-            lhs: Some(Variable {
-                name: "_".to_string(),
-                value: self.rhs.value + rhs_lhs_value,
-            }),
-            rhs: _rhs.rhs,
-            operator: Operator::Add,
-        }
-    }
-}
-
-peg::parser! {
-
-    grammar route2_parser() for str {
-
-        rule number() -> f32
-            = n:$(['.'|'0'..='9']+) { n.parse::<f32>().unwrap() }
-
-        // -1 etc
-        // rule unary(num: rule<str>) -> f32
-        //     = n:$(['-'num()]) { n.parse::<f32>().unwrap() * -1.0 }
-
-        rule label() -> String
-            = v:$(['a'..='z'|'A'..='Z'|'0'..='9'|'_']*) { v.into() }
-
-        rule variable() -> Variable
-            = v:label() _ "=" _ n:number() {
-                Variable {
-                    name: v,
-                    value: n
-                }
+    let pairs = Route2Parser::parse(Rule::program, source)?;
+    for pair in pairs {
+        match pair.as_rule() {
+            Rule::expr => {
+                ast.push(Print(Box::new(build_ast_from_expr(pair))));
             }
+            _ => {}
+        }
+    }
 
-        pub rule variables() -> Vec<Variable>
-            = v:variable() ++ "; " { v }
+    Ok(ast)
+}
 
-        rule expression() -> Expression<Variable>
-            = "(" _ e:expression() _ ")" { e }
-        // whitespace
-        rule _
-            = [' '|'\n']*
+fn build_ast_from_expr(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    match pair.as_rule() {
+        Rule::expr => build_ast_from_expr(pair.into_inner().next().unwrap()),
+        Rule::monadicExpr => {
+            let mut pair = pair.into_inner();
+            let verb = pair.next().unwrap();
+            let expr = pair.next().unwrap();
+            let expr = build_ast_from_expr(expr);
+            parse_monadic_verb(verb, expr)
+        }
+        Rule::dyadicExpr => {
+            let mut pair = pair.into_inner();
+            let lhspair = pair.next().unwrap();
+            let lhs = build_ast_from_expr(lhspair);
+            let verb = pair.next().unwrap();
+            let rhspair = pair.next().unwrap();
+            let rhs = build_ast_from_expr(rhspair);
+            parse_dyadic_verb(verb, lhs, rhs)
+        }
+        Rule::terms => {
+            let terms: Vec<AstNode> = pair.into_inner().map(build_ast_from_term).collect();
+            // If there's just a single term, return it without
+            // wrapping it in a Terms node.
+            match terms.len() {
+                1 => terms.get(0).unwrap().clone(),
+                _ => Terms(terms),
+            }
+        }
+        Rule::assgmtExpr => {
+            let mut pair = pair.into_inner();
+            let ident = pair.next().unwrap();
+            let expr = pair.next().unwrap();
+            let expr = build_ast_from_expr(expr);
+            AstNode::IsGlobal {
+                ident: String::from(ident.as_str()),
+                expr: Box::new(expr),
+            }
+        }
+        Rule::string => {
+            let str = &pair.as_str();
+            // Strip leading and ending quotes.
+            let str = &str[1..str.len() - 1];
+            // Escaped string quotes become single quotes here.
+            let str = str.replace("''", "'");
+            AstNode::Str(CString::new(&str[..]).unwrap())
+        }
+        unknown_expr => panic!("Unexpected expression: {:?}", unknown_expr),
+    }
+}
 
-        // pub rule parse() -> Vec<Variable> = precedence! {
-        //     x:(@) _ "+" _ y:@ { x + y }
-        //     // x:(@) _ "-" _ y:@ { x - y }
-        //     // --
-        //     // x:(@) _ "*" _ y:@ { x * y }
-        //     // x:(@) _ "/" _ y:@ { x / y }
-        //     // --
-        //     // x:@ "^" y:(@) { f32::pow(x, y) }
-        //     // --
-        //     "(" _ e:parse() _ ")" { e }
-        //     --
-        //     // "-" x:(@) { x * -1.0}
-        //     variables:variable() ++ "; " { variables }
+fn parse_dyadic_verb(pair: pest::iterators::Pair<Rule>, lhs: AstNode, rhs: AstNode) -> AstNode {
+    AstNode::DyadicOp {
+        lhs: Box::new(lhs),
+        rhs: Box::new(rhs),
+        verb: match pair.as_str() {
+            "+" => DyadicVerb::Plus,
+            "*" => DyadicVerb::Times,
+            "-" => DyadicVerb::Minus,
+            "<" => DyadicVerb::LessThan,
+            "=" => DyadicVerb::Equal,
+            ">" => DyadicVerb::LargerThan,
+            "%" => DyadicVerb::Divide,
+            "^" => DyadicVerb::Power,
+            "|" => DyadicVerb::Residue,
+            "#" => DyadicVerb::Copy,
+            ">." => DyadicVerb::LargerOf,
+            ">:" => DyadicVerb::LargerOrEqual,
+            "$" => DyadicVerb::Shape,
+            _ => panic!("Unexpected dyadic verb: {}", pair.as_str()),
+        },
+    }
+}
 
-        // }
+fn parse_monadic_verb(pair: pest::iterators::Pair<Rule>, expr: AstNode) -> AstNode {
+    AstNode::MonadicOp {
+        verb: match pair.as_str() {
+            ">:" => MonadicVerb::Increment,
+            "*:" => MonadicVerb::Square,
+            "-" => MonadicVerb::Negate,
+            "%" => MonadicVerb::Reciprocal,
+            "#" => MonadicVerb::Tally,
+            ">." => MonadicVerb::Ceiling,
+            "$" => MonadicVerb::ShapeOf,
+            _ => panic!("Unsupported monadic verb: {}", pair.as_str()),
+        },
+        expr: Box::new(expr),
+    }
+}
 
-  }
+fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> AstNode {
+    match pair.as_rule() {
+        Rule::integer => {
+            let istr = pair.as_str();
+            let (sign, istr) = match &istr[..1] {
+                "_" => (-1, &istr[1..]),
+                _ => (1, &istr[..]),
+            };
+            let integer: i32 = istr.parse().unwrap();
+            AstNode::Integer(sign * integer)
+        }
+        Rule::decimal => {
+            let dstr = pair.as_str();
+            let (sign, dstr) = match &dstr[..1] {
+                "_" => (-1.0, &dstr[1..]),
+                _ => (1.0, &dstr[..]),
+            };
+            let mut flt: f64 = dstr.parse().unwrap();
+            if flt != 0.0 {
+                // Avoid negative zeroes; only multiply sign by nonzeroes.
+                flt *= sign;
+            }
+            AstNode::DoublePrecisionFloat(flt)
+        }
+        Rule::expr => build_ast_from_expr(pair),
+        Rule::ident => AstNode::Ident(String::from(pair.as_str())),
+        unknown_term => panic!("Unexpected term: {:?}", unknown_term),
+    }
 }
 
 fn main() {
-    println!("{:#?}", route2_parser::variables("x = 3; y = 5"));
-    // println!("{:#?}", route2_parser::arithmetic("24.7 + 37.0"));
-    // println!("{:#?}", route2_parser::arithmetic("(24.7 + 37.0) / 2"));
-    // println!(
-    //     "{:#?}",
-    //     route2_parser::arithmetic("((24.7 + 37.0) / 2) * -1")
-    // );
+    let unparsed_file = std::fs::read_to_string("example.ijs").expect("cannot read ijs file");
+    let astnode = parse(&unparsed_file).expect("unsuccessful parse");
+    println!("{:?}", &astnode);
 }

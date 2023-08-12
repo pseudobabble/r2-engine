@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 uom = "0.35.0"
 peg = "0.8.1"
+pest = "2.7.2"
+pest_derive = "2.7.2"
