@@ -14,7 +14,7 @@ monadicExpr = { verb ~ expr }
 
 dyadicExpr = { (monadicExpr | terms) ~ verb ~ expr }
 
-assgmtExpr = { ident ~ "=:" ~ expr }
+assgmtExpr = { ident ~ "=" ~ expr }
 
 terms = { term+ }
 
@@ -36,4 +36,4 @@ string = @{ "'" ~ ( "''" | (!"'" ~ ANY) )* ~ "'" }
 
 WHITESPACE = _{ " " | "\t" }
 
-COMMENT = _{ "NB." ~ (!"\n" ~ ANY)* }
+COMMENT = _{ "#" ~ (!"\n" ~ ANY)* }
