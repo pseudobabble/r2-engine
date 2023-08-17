@@ -8,12 +8,12 @@ use uom::si::length::kilometer;
 use uom::si::time::second;
 
 use nom::branch::alt;
-use nom::bytes::complete::tag;
+use nom::bytes::complete::{tag, take};
 use nom::character::complete::{alpha1, alphanumeric1, char, digit1, space0};
 use nom::combinator::map;
 use nom::multi::many0;
 use nom::number::complete::double;
-use nom::sequence::{delimited, tuple};
+use nom::sequence::{delimited, preceded, terminated, tuple};
 use nom::IResult;
 use std::str::FromStr;
 
@@ -73,32 +73,21 @@ pub enum AstNode {
 // fn parse_expression() {}
 
 fn parse_number(number: &str) -> IResult<&str, crate::AstNode> {
+    println!("reached parse_number {}", number);
     let (input, number) = double(number)?;
 
     Ok((input, AstNode::Double(number)))
 }
 
 fn parse_name(name: &str) -> IResult<&str, crate::AstNode> {
+    println!("reached parse_name");
     let (input, name) = alpha1(name)?;
 
     Ok((input, AstNode::Name(name.to_string())))
 }
 
-fn parse_variable(input: &str) -> IResult<&str, crate::AstNode> {
-    let (input, name) = parse_name(input)?;
-    let (input, _) = tag(" = ")(input)?;
-    let (input, number) = alt((parse_binary_op, parse_unary_op, parse_number))(input)?;
-
-    Ok((
-        input,
-        AstNode::Variable {
-            name: Box::new(name),
-            expr: Box::new(number),
-        },
-    ))
-}
-
 fn parse_unary_op(input: &str) -> IResult<&str, crate::AstNode> {
+    println!("reached parse_unary_op");
     let (input, sign) = tag("-")(input)?;
     let (input, negative_number) = parse_number(input)?;
     Ok((
@@ -114,32 +103,52 @@ fn parse_unary_op(input: &str) -> IResult<&str, crate::AstNode> {
 }
 
 fn parse_operator(input: &str) -> IResult<&str, &str> {
+    println!("reached parse_operator");
     Ok(alt((
-        delimited(space0, tag("+"), space0),
-        delimited(space0, tag("-"), space0),
-        delimited(space0, tag("*"), space0),
-        delimited(space0, tag("/"), space0),
-        delimited(space0, tag("^"), space0),
+        terminated(preceded(space0, tag("*")), space0),
+        terminated(preceded(space0, tag("")), space0),
+        terminated(preceded(space0, tag("*")), space0),
+        terminated(preceded(space0, tag("/")), space0),
+        terminated(preceded(space0, tag("^")), space0),
     ))(input)?)
 }
 
 fn parse_binary_op(input: &str) -> IResult<&str, crate::AstNode> {
+    println!("reached parse_binary_op");
     let (input, lhs) = alt((parse_name, parse_unary_op, parse_number))(input)?;
     let (input, operator) = parse_operator(input)?;
-    let (input, rhs) = alt((parse_name, parse_unary_op, parse_number))(input)?;
+    let (input, rhs) = alt((parse_name, parse_binary_op, parse_unary_op, parse_number))(input)?;
     Ok((
         input,
         AstNode::BinaryOp {
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
             operation: match operator {
-                "" => BinaryOperation::Add,
-                " - " => BinaryOperation::Subtract,
-                " * " => BinaryOperation::Multiply,
-                " / " => BinaryOperation::Divide,
-                " ^ " => BinaryOperation::Power,
-                _ => panic!("Unsupported binary operation"),
+                "+" => BinaryOperation::Add,
+                "-" => BinaryOperation::Subtract,
+                "*" => BinaryOperation::Multiply,
+                "" => BinaryOperation::Divide,
+                "^" => BinaryOperation::Power,
+                _ => panic!("Unsupported binary operation {}", operator),
             },
+        },
+    ))
+}
+
+fn parse_variable(input: &str) -> IResult<&str, crate::AstNode> {
+    println!("reached parse_variable");
+    let (input, name) = parse_name(input)?;
+    let (input, _) = tag(" = ")(input)?;
+    let (input, expr) = terminated(
+        alt((parse_binary_op, parse_unary_op, parse_number)),
+        char(';'),
+    )(input)?;
+
+    Ok((
+        input,
+        AstNode::Variable {
+            name: Box::new(name),
+            expr: Box::new(expr),
         },
     ))
 }
@@ -173,7 +182,7 @@ fn main() -> () {
     );
 
     assert_eq!(
-        parse_variable("test = 1.2"),
+        parse_variable("test = 1.2;"),
         Ok((
             "",
             AstNode::Variable {
@@ -207,7 +216,7 @@ fn main() -> () {
     );
 
     assert_eq!(
-        parse_binary_op("var = -2"),
+        parse_variable("var = -2;"),
         Ok((
             "",
             AstNode::Variable {
@@ -221,7 +230,7 @@ fn main() -> () {
     );
 
     assert_eq!(
-        parse_binary_op("var = 2 * 2"),
+        parse_variable("var = 2 * 2;"),
         Ok((
             "",
             AstNode::Variable {
@@ -234,6 +243,23 @@ fn main() -> () {
             }
         ))
     );
+
+    println!("{:#?}", parse_variable("var = 2 * 2 * 2 + 2;"));
+
+    // assert_eq!(
+    //     parse_variable("x = 2 * 2; y = 1; c = x + y"),
+    //     Ok((
+    //         "",
+    //         AstNode::Variable {
+    //             name: Box::new(AstNode::Name("var".to_string())),
+    //             expr: Box::new(AstNode::BinaryOp {
+    //                 operation: BinaryOperation::Multiply,
+    //                 lhs: Box::new(AstNode::Double(2.0)),
+    //                 rhs: Box::new(AstNode::Double(2.0))
+    //             })
+    //         }
+    //     ))
+    // );
 
     ()
 }
