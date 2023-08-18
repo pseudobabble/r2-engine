@@ -1,17 +1,9 @@
-use std::any::Any;
-
 extern crate nom;
 extern crate uom;
 
-use uom::si::f32::*;
-use uom::si::length::kilometer;
-use uom::si::time::second;
-
 use nom::branch::alt;
-use nom::bytes::complete::{tag, take};
-use nom::character::complete::{alpha1, alphanumeric1, char, digit1, space0};
-use nom::combinator::map;
-use nom::multi::many0;
+use nom::bytes::complete::tag;
+use nom::character::complete::{alpha1, char, space0};
 use nom::number::complete::double;
 use nom::sequence::{delimited, preceded, terminated, tuple};
 use nom::IResult;
@@ -66,29 +58,23 @@ pub enum AstNode {
     },
 }
 
-// pub fn parse(input: &str) -> IResult<&str, AstNode> {
-//     parse_expression(input)
-// }
-
-// fn parse_expression() {}
-
 fn parse_number(number: &str) -> IResult<&str, crate::AstNode> {
-    println!("reached parse_number {}", number);
+    println!("reached parse_number {}", number.clone());
     let (input, number) = double(number)?;
 
     Ok((input, AstNode::Double(number)))
 }
 
 fn parse_name(name: &str) -> IResult<&str, crate::AstNode> {
-    println!("reached parse_name");
+    println!("reached parse_name {}", name.clone());
     let (input, name) = alpha1(name)?;
 
     Ok((input, AstNode::Name(name.to_string())))
 }
 
 fn parse_unary_op(input: &str) -> IResult<&str, crate::AstNode> {
-    println!("reached parse_unary_op");
-    let (input, sign) = tag("-")(input)?;
+    println!("reached parse_unary_op {}", input.clone());
+    let (input, sign) = tag("-")(input.clone())?;
     let (input, negative_number) = parse_number(input)?;
     Ok((
         input,
@@ -103,10 +89,10 @@ fn parse_unary_op(input: &str) -> IResult<&str, crate::AstNode> {
 }
 
 fn parse_operator(input: &str) -> IResult<&str, &str> {
-    println!("reached parse_operator");
+    println!("reached parse_operator {}", input.clone());
     Ok(alt((
-        terminated(preceded(space0, tag("*")), space0),
-        terminated(preceded(space0, tag("")), space0),
+        terminated(preceded(space0, tag("+")), space0),
+        terminated(preceded(space0, tag("-")), space0),
         terminated(preceded(space0, tag("*")), space0),
         terminated(preceded(space0, tag("/")), space0),
         terminated(preceded(space0, tag("^")), space0),
@@ -114,10 +100,10 @@ fn parse_operator(input: &str) -> IResult<&str, &str> {
 }
 
 fn parse_binary_op(input: &str) -> IResult<&str, crate::AstNode> {
-    println!("reached parse_binary_op");
+    println!("reached parse_binary_op {}", input.clone());
     let (input, lhs) = alt((parse_name, parse_unary_op, parse_number))(input)?;
     let (input, operator) = parse_operator(input)?;
-    let (input, rhs) = alt((parse_name, parse_binary_op, parse_unary_op, parse_number))(input)?;
+    let (input, rhs) = parse_expression(input)?;
     Ok((
         input,
         AstNode::BinaryOp {
@@ -127,7 +113,7 @@ fn parse_binary_op(input: &str) -> IResult<&str, crate::AstNode> {
                 "+" => BinaryOperation::Add,
                 "-" => BinaryOperation::Subtract,
                 "*" => BinaryOperation::Multiply,
-                "" => BinaryOperation::Divide,
+                "/" => BinaryOperation::Divide,
                 "^" => BinaryOperation::Power,
                 _ => panic!("Unsupported binary operation {}", operator),
             },
@@ -135,12 +121,28 @@ fn parse_binary_op(input: &str) -> IResult<&str, crate::AstNode> {
     ))
 }
 
+fn parse_expression(input: &str) -> IResult<&str, crate::AstNode> {
+    println!("reached parse_expression {}", input.clone());
+    let (input, expression) = delimited(
+        tag("("),
+        alt((
+            parse_number,
+            parse_unary_op,
+            parse_binary_op,
+            parse_expression,
+        )),
+        tag(")"),
+    )(input)?;
+
+    Ok((input, expression))
+}
+
 fn parse_variable(input: &str) -> IResult<&str, crate::AstNode> {
-    println!("reached parse_variable");
+    println!("reached parse_variable {}", input.clone());
     let (input, name) = parse_name(input)?;
     let (input, _) = tag(" = ")(input)?;
     let (input, expr) = terminated(
-        alt((parse_binary_op, parse_unary_op, parse_number)),
+        alt((parse_unary_op, parse_number, parse_expression)),
         char(';'),
     )(input)?;
 
@@ -164,6 +166,7 @@ fn main() -> () {
     // }
     // println!("{:?}", parsed);
 
+    println!("\n\nTEST parse_number");
     assert_eq!(parse_number("11e-1"), Ok(("", AstNode::Double(1.1))));
     assert_eq!(parse_number("1"), Ok(("", AstNode::Double(1.0))));
     assert_eq!(parse_number("1.1"), Ok(("", AstNode::Double(1.1))));
@@ -172,6 +175,7 @@ fn main() -> () {
         Ok(("", AstNode::Double(9999999.987654)))
     );
 
+    println!("\n\nTEST parse_name");
     assert_eq!(
         parse_name("test"),
         Ok(("", AstNode::Name("test".to_string())))
@@ -181,17 +185,7 @@ fn main() -> () {
         Ok(("", AstNode::Name("test".to_string())))
     );
 
-    assert_eq!(
-        parse_variable("test = 1.2;"),
-        Ok((
-            "",
-            AstNode::Variable {
-                name: Box::new(AstNode::Name("test".to_string())),
-                expr: Box::new(AstNode::Double(1.2))
-            }
-        ))
-    );
-
+    println!("\n\nTEST parse_unary_op negative");
     assert_eq!(
         parse_unary_op("-2"),
         Ok((
@@ -203,18 +197,19 @@ fn main() -> () {
         ))
     );
 
+    println!("\n\nTEST parse_variable double");
     assert_eq!(
-        parse_binary_op("2 * 2"),
+        parse_variable("test = 1.2;"),
         Ok((
             "",
-            AstNode::BinaryOp {
-                operation: BinaryOperation::Multiply,
-                lhs: Box::new(AstNode::Double(2.0)),
-                rhs: Box::new(AstNode::Double(2.0))
+            AstNode::Variable {
+                name: Box::new(AstNode::Name("test".to_string())),
+                expr: Box::new(AstNode::Double(1.2))
             }
         ))
     );
 
+    println!("\n\nTEST parse_variable negative unary op");
     assert_eq!(
         parse_variable("var = -2;"),
         Ok((
@@ -229,14 +224,28 @@ fn main() -> () {
         ))
     );
 
+    println!("\n\nTEST parse_expression");
     assert_eq!(
-        parse_variable("var = 2 * 2;"),
+        parse_variable("var = (2 / 2);"),
+        Ok((
+            "",
+            AstNode::BinaryOp {
+                operation: BinaryOperation::Divide,
+                lhs: Box::new(AstNode::Double(2.0)),
+                rhs: Box::new(AstNode::Double(2.0))
+            }
+        ))
+    );
+
+    println!("\n\nTEST parse_variable expression");
+    assert_eq!(
+        parse_variable("var = (2 / 2);"),
         Ok((
             "",
             AstNode::Variable {
                 name: Box::new(AstNode::Name("var".to_string())),
                 expr: Box::new(AstNode::BinaryOp {
-                    operation: BinaryOperation::Multiply,
+                    operation: BinaryOperation::Divide,
                     lhs: Box::new(AstNode::Double(2.0)),
                     rhs: Box::new(AstNode::Double(2.0))
                 })
@@ -244,7 +253,29 @@ fn main() -> () {
         ))
     );
 
-    println!("{:#?}", parse_variable("var = 2 * 2 * 2 + 2;"));
+    println!("\n\nTEST parse multi term variable");
+    assert_eq!(
+        parse_variable("var = ((2 * 3) * (4 + 5));"),
+        Ok((
+            "",
+            AstNode::Variable {
+                name: Box::new(AstNode::Name("var".to_string())),
+                expr: Box::new(AstNode::BinaryOp {
+                    operation: BinaryOperation::Multiply,
+                    lhs: Box::new(AstNode::Double(2.0)),
+                    rhs: Box::new(AstNode::BinaryOp {
+                        operation: BinaryOperation::Multiply,
+                        lhs: Box::new(AstNode::Double(3.0)),
+                        rhs: Box::new(AstNode::BinaryOp {
+                            operation: BinaryOperation::Multiply,
+                            lhs: Box::new(AstNode::Double(4.0)),
+                            rhs: Box::new(AstNode::Double(5.0)),
+                        })
+                    })
+                })
+            }
+        ))
+    );
 
     // assert_eq!(
     //     parse_variable("x = 2 * 2; y = 1; c = x + y"),
