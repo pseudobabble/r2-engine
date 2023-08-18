@@ -3,11 +3,21 @@ extern crate uom;
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::{alpha1, char, space0};
+use nom::character::complete::{alpha1, alphanumeric1, char, space0};
 use nom::multi::many0;
 use nom::number::complete::double;
-use nom::sequence::{preceded, terminated};
+use nom::sequence::{delimited, preceded, terminated};
 use nom::IResult;
+
+// TODO: dimensional analysis can happen when interpreted
+// use uom::fmt::DisplayStyle::Abbreviation;
+// use uom::si::f64;
+// use uom::si::f64::*;
+// use uom::si::length::meter;
+// use uom::si::time::second;
+// use uom::si::velocity::{kilometer_per_second, meter_per_second};
+// use uom::si::Quantity;
+// use uom::Conversion;
 
 /// (average_wage_per_unit_calendar_time * (avoided_days_of_lost_due_to_anxiety + avoided_days_of_lost_due_to_depression))
 ///  * ((proportion_proxy_benefit_attributed_to_wellbeing_anxiety + proportion_proxy_benefit_attributed_to_wellbeing_depression) / 2)
@@ -33,10 +43,25 @@ pub enum BinaryOperation {
     Power,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum Unit {
+    Meter,
+    Kilometer,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum Dimension {
+    Length { unit: Unit },
+    Volume { unit: Unit },
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum AstNode {
     Print(Box<AstNode>),
-    Double(f64),
+    Double {
+        value: f64,
+        dimension: Dimension,
+    },
     Name(String),
     Expression {
         operation: BinaryOperation,
@@ -49,11 +74,69 @@ pub enum AstNode {
     },
 }
 
+fn parse_length(input: &str) -> IResult<&str, crate::Dimension> {
+    println!("reached parse_length {}", input.clone());
+
+    // TODO: none of this is very nice, differentiate unit families better
+
+    // https://docs.rs/nom/latest/nom/branch/fn.alt.html
+    let (input, unit_alias) = delimited(
+        tag("["),
+        alt((
+            tag("meters"),
+            tag("meter"),
+            tag("m"), // longest to shortest!!
+            tag("kilometers"),
+            tag("kilometer"),
+            tag("km"),
+        )),
+        tag("]"),
+    )(input)?;
+    println!("parsed unit alias {}", unit_alias.clone());
+
+    let dimension = match unit_alias {
+        "m" => Dimension::Length { unit: Unit::Meter },
+        "meter" => Dimension::Length { unit: Unit::Meter },
+        "meters" => Dimension::Length { unit: Unit::Meter },
+        "km" => Dimension::Length {
+            unit: Unit::Kilometer,
+        },
+        "kilometer" => Dimension::Length {
+            unit: Unit::Kilometer,
+        },
+        "kilometers" => Dimension::Length {
+            unit: Unit::Kilometer,
+        },
+        _ => panic!("Unsupported unit alias {}", unit_alias),
+    };
+
+    Ok((input, dimension))
+}
+
+/// Switch on dimensions
+fn parse_dimension(input: &str) -> IResult<&str, crate::Dimension> {
+    println!("reached parse_dimension {}", input.clone());
+    let (input, dimension) = parse_length(input)?;
+    // let (input, dimension) = delimited(tag("["), alt((parse_length, parse_volume)), tag("]"))(input)?;
+
+    Ok((input, dimension))
+}
+
 fn parse_number(number: &str) -> IResult<&str, crate::AstNode> {
     println!("reached parse_number {}", number.clone());
     let (input, number) = double(number)?;
+    println!("parsed number {}", number.clone());
 
-    Ok((input, AstNode::Double(number)))
+    let (input, dimension) = parse_dimension(input)?;
+    println!("parsed dimension {:#?}", dimension.clone());
+
+    Ok((
+        input,
+        AstNode::Double {
+            value: number,
+            dimension: dimension,
+        },
+    ))
 }
 
 fn parse_name(name: &str) -> IResult<&str, crate::AstNode> {
@@ -130,12 +213,47 @@ fn main() -> () {
     // println!("{:?}", parsed);
 
     println!("\n\nTEST parse_number");
-    assert_eq!(parse_number("11e-1"), Ok(("", AstNode::Double(1.1))));
-    assert_eq!(parse_number("1"), Ok(("", AstNode::Double(1.0))));
-    assert_eq!(parse_number("1.1"), Ok(("", AstNode::Double(1.1))));
     assert_eq!(
-        parse_number("9999999.987654"),
-        Ok(("", AstNode::Double(9999999.987654)))
+        parse_number("11e-1[m]"),
+        Ok((
+            "",
+            AstNode::Double {
+                value: 1.1,
+                dimension: Dimension::Length { unit: Unit::Meter }
+            }
+        ))
+    );
+    assert_eq!(
+        parse_number("1[meter]"),
+        Ok((
+            "",
+            AstNode::Double {
+                value: 1.0,
+                dimension: Dimension::Length { unit: Unit::Meter }
+            }
+        ))
+    );
+    assert_eq!(
+        parse_number("1.1[km]"),
+        Ok((
+            "",
+            AstNode::Double {
+                value: 1.1,
+                dimension: Dimension::Length {
+                    unit: Unit::Kilometer
+                }
+            }
+        ))
+    );
+    assert_eq!(
+        parse_number("9999999.987654[m]"),
+        Ok((
+            "",
+            AstNode::Double {
+                value: 9999999.987654,
+                dimension: Dimension::Length { unit: Unit::Meter }
+            }
+        ))
     );
 
     println!("\n\nTEST parse_name");
@@ -150,57 +268,89 @@ fn main() -> () {
 
     println!("\n\nTEST parse_variable double");
     assert_eq!(
-        parse_variable("test = 1.2;"),
+        parse_variable("test = 1.2[m];"),
         Ok((
             "",
             AstNode::Variable {
                 name: Box::new(AstNode::Name("test".to_string())),
-                expr: Box::new(AstNode::Double(1.2))
+                expr: Box::new(AstNode::Double {
+                    value: 1.2,
+                    dimension: Dimension::Length { unit: Unit::Meter }
+                })
             }
         ))
     );
 
     println!("\n\nTEST parse_variable negative unary op");
     assert_eq!(
-        parse_variable("var = -2;"),
+        parse_variable("var = -2[kilometers];"),
         Ok((
             "",
             AstNode::Variable {
                 name: Box::new(AstNode::Name("var".to_string())),
-                expr: Box::new(AstNode::Double(-2.0))
+                expr: Box::new(AstNode::Double {
+                    value: -2.0,
+                    dimension: Dimension::Length {
+                        unit: Unit::Kilometer
+                    }
+                })
             }
         ))
     );
 
     println!("\n\nTEST parse_expression");
     assert_eq!(
-        parse_expression("(2 / 2)"),
+        parse_expression("(2[km] / 2[m])"),
         Ok((
             "",
             AstNode::Expression {
                 operation: BinaryOperation::Divide,
-                lhs: Box::new(AstNode::Double(2.0)),
-                rhs: Box::new(AstNode::Double(2.0))
+                lhs: Box::new(AstNode::Double {
+                    value: 2.0,
+                    dimension: Dimension::Length {
+                        unit: Unit::Kilometer
+                    }
+                }),
+                rhs: Box::new(AstNode::Double {
+                    value: 2.0,
+                    dimension: Dimension::Length { unit: Unit::Meter }
+                })
             }
         ))
     );
 
     println!("\n\nTEST parse multi term expression");
     assert_eq!(
-        parse_expression("((2 / 2) + (4 * 4))"),
+        parse_expression("((2[m] / 2[km]) + (4[km] * 4[m]))"),
         Ok((
             "",
             AstNode::Expression {
                 operation: BinaryOperation::Add,
                 lhs: Box::new(AstNode::Expression {
                     operation: BinaryOperation::Divide,
-                    lhs: Box::new(AstNode::Double(2.0)),
-                    rhs: Box::new(AstNode::Double(2.0))
+                    lhs: Box::new(AstNode::Double {
+                        value: 2.0,
+                        dimension: Dimension::Length { unit: Unit::Meter }
+                    }),
+                    rhs: Box::new(AstNode::Double {
+                        value: 2.0,
+                        dimension: Dimension::Length {
+                            unit: Unit::Kilometer
+                        }
+                    })
                 }),
                 rhs: Box::new(AstNode::Expression {
                     operation: BinaryOperation::Multiply,
-                    lhs: Box::new(AstNode::Double(4.0)),
-                    rhs: Box::new(AstNode::Double(4.0))
+                    lhs: Box::new(AstNode::Double {
+                        value: 4.0,
+                        dimension: Dimension::Length {
+                            unit: Unit::Kilometer
+                        }
+                    }),
+                    rhs: Box::new(AstNode::Double {
+                        value: 4.0,
+                        dimension: Dimension::Length { unit: Unit::Meter }
+                    })
                 })
             }
         ))
@@ -208,15 +358,23 @@ fn main() -> () {
 
     println!("\n\nTEST parse_variable expression");
     assert_eq!(
-        parse_variable("var = (2 / 2);"),
+        parse_variable("var = (2[m] / 2[km]);"),
         Ok((
             "",
             AstNode::Variable {
                 name: Box::new(AstNode::Name("var".to_string())),
                 expr: Box::new(AstNode::Expression {
                     operation: BinaryOperation::Divide,
-                    lhs: Box::new(AstNode::Double(2.0)),
-                    rhs: Box::new(AstNode::Double(2.0))
+                    lhs: Box::new(AstNode::Double {
+                        value: 2.0,
+                        dimension: Dimension::Length { unit: Unit::Meter }
+                    }),
+                    rhs: Box::new(AstNode::Double {
+                        value: 2.0,
+                        dimension: Dimension::Length {
+                            unit: Unit::Kilometer
+                        }
+                    })
                 })
             }
         ))
@@ -224,7 +382,7 @@ fn main() -> () {
 
     println!("\n\nTEST parse multi term variable");
     assert_eq!(
-        parse_variable("var = ((2 * 3) * (4 + 5));"),
+        parse_variable("var = ((2[m] * 3[kilometers]) * (4[meters] + 5[km]));"),
         Ok((
             "",
             AstNode::Variable {
@@ -233,13 +391,29 @@ fn main() -> () {
                     operation: BinaryOperation::Multiply,
                     lhs: Box::new(AstNode::Expression {
                         operation: BinaryOperation::Multiply,
-                        lhs: Box::new(AstNode::Double(2.0)),
-                        rhs: Box::new(AstNode::Double(3.0)),
+                        lhs: Box::new(AstNode::Double {
+                            value: 2.0,
+                            dimension: Dimension::Length { unit: Unit::Meter }
+                        }),
+                        rhs: Box::new(AstNode::Double {
+                            value: 3.0,
+                            dimension: Dimension::Length {
+                                unit: Unit::Kilometer
+                            }
+                        }),
                     }),
                     rhs: Box::new(AstNode::Expression {
                         operation: BinaryOperation::Add,
-                        lhs: Box::new(AstNode::Double(4.0)),
-                        rhs: Box::new(AstNode::Double(5.0)),
+                        lhs: Box::new(AstNode::Double {
+                            value: 4.0,
+                            dimension: Dimension::Length { unit: Unit::Meter }
+                        }),
+                        rhs: Box::new(AstNode::Double {
+                            value: 5.0,
+                            dimension: Dimension::Length {
+                                unit: Unit::Kilometer
+                            }
+                        }),
                     })
                 })
             }
@@ -248,7 +422,7 @@ fn main() -> () {
 
     println!("\n\nTEST parse variables and abstract expressions");
     assert_eq!(
-        parse_program("x = (2 * 2); y = 1; z = (x + y);"),
+        parse_program("x = (2[m] * 2[kilometer]); y = 1[km]; z = (x + y);"),
         Ok((
             "",
             vec![
@@ -256,13 +430,26 @@ fn main() -> () {
                     name: Box::new(AstNode::Name("x".to_string())),
                     expr: Box::new(AstNode::Expression {
                         operation: BinaryOperation::Multiply,
-                        lhs: Box::new(AstNode::Double(2.0)),
-                        rhs: Box::new(AstNode::Double(2.0))
+                        lhs: Box::new(AstNode::Double {
+                            value: 2.0,
+                            dimension: Dimension::Length { unit: Unit::Meter }
+                        }),
+                        rhs: Box::new(AstNode::Double {
+                            value: 2.0,
+                            dimension: Dimension::Length {
+                                unit: Unit::Kilometer
+                            }
+                        })
                     })
                 },
                 AstNode::Variable {
                     name: Box::new(AstNode::Name("y".to_string())),
-                    expr: Box::new(AstNode::Double(1.0))
+                    expr: Box::new(AstNode::Double {
+                        value: 1.0,
+                        dimension: Dimension::Length {
+                            unit: Unit::Kilometer
+                        }
+                    })
                 },
                 AstNode::Variable {
                     name: Box::new(AstNode::Name("z".to_string())),
@@ -278,6 +465,22 @@ fn main() -> () {
 
     println!(
         "{:#?}",
-        parse_program("x = (2 * 2); y = 1; z = ((x + y) * 3);")
+        parse_program("x = (2[m] * 2[kilometer]); y = 1[km]; z = (x + y);")
     );
+
+    // let l1 = Length::new::<meter>(15.0);
+    // let l2 = Length::new::<centimeter>(10.0);
+    // let t1 = Time::new::<second>(50.0);
+    // let v1 = l1 / t1;
+    // // let error = l1 + t1;
+
+    // struct TypedVar<T> {
+    //     name: String,
+    //     typename: T,
+    // }
+
+    // let s = TypedVar {
+    //     name: "t".to_string(),
+    //     typename: Length::new::<meter>,
+    // };
 }
