@@ -33,6 +33,10 @@ use nom::IResult;
 ///  * imp_employee_time_in_mental_wellbeing_programmes[time]
 
 /// use fuel
+///
+///
+/// TODO: do distance/speed/time examples -> need the interpreter
+/// TODO: variables need units, otherwise can do valid but unintended calculations
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum BinaryOperation {
