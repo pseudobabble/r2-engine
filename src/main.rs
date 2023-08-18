@@ -227,15 +227,15 @@ fn main() -> () {
                 name: Box::new(AstNode::Name("var".to_string())),
                 expr: Box::new(AstNode::Expression {
                     operation: BinaryOperation::Multiply,
-                    lhs: Box::new(AstNode::Double(2.0)),
-                    rhs: Box::new(AstNode::Expression {
+                    lhs: Box::new(AstNode::Expression {
                         operation: BinaryOperation::Multiply,
-                        lhs: Box::new(AstNode::Double(3.0)),
-                        rhs: Box::new(AstNode::Expression {
-                            operation: BinaryOperation::Multiply,
-                            lhs: Box::new(AstNode::Double(4.0)),
-                            rhs: Box::new(AstNode::Double(5.0)),
-                        })
+                        lhs: Box::new(AstNode::Double(2.0)),
+                        rhs: Box::new(AstNode::Double(3.0)),
+                    }),
+                    rhs: Box::new(AstNode::Expression {
+                        operation: BinaryOperation::Add,
+                        lhs: Box::new(AstNode::Double(4.0)),
+                        rhs: Box::new(AstNode::Double(5.0)),
                     })
                 })
             }
