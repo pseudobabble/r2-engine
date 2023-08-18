@@ -25,11 +25,6 @@ use std::str::FromStr;
 /// use fuel
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub enum UnaryOperation {
-    Negate,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum BinaryOperation {
     Add,
     Subtract,
@@ -43,11 +38,7 @@ pub enum AstNode {
     Print(Box<AstNode>),
     Double(f64),
     Name(String),
-    UnaryOp {
-        operation: UnaryOperation,
-        expr: Box<AstNode>,
-    },
-    BinaryOp {
+    Expression {
         operation: BinaryOperation,
         lhs: Box<AstNode>,
         rhs: Box<AstNode>,
@@ -72,22 +63,6 @@ fn parse_name(name: &str) -> IResult<&str, crate::AstNode> {
     Ok((input, AstNode::Name(name.to_string())))
 }
 
-fn parse_unary_op(input: &str) -> IResult<&str, crate::AstNode> {
-    println!("reached parse_unary_op {}", input.clone());
-    let (input, sign) = tag("-")(input.clone())?;
-    let (input, negative_number) = parse_number(input)?;
-    Ok((
-        input,
-        AstNode::UnaryOp {
-            operation: match sign {
-                "-" => UnaryOperation::Negate,
-                _ => panic!("Unsupported unary operation"),
-            },
-            expr: Box::new(negative_number),
-        },
-    ))
-}
-
 fn parse_operator(input: &str) -> IResult<&str, &str> {
     println!("reached parse_operator {}", input.clone());
     Ok(alt((
@@ -99,14 +74,20 @@ fn parse_operator(input: &str) -> IResult<&str, &str> {
     ))(input)?)
 }
 
-fn parse_binary_op(input: &str) -> IResult<&str, crate::AstNode> {
-    println!("reached parse_binary_op {}", input.clone());
-    let (input, lhs) = alt((parse_name, parse_unary_op, parse_number))(input)?;
+fn parse_expression(input: &str) -> IResult<&str, crate::AstNode> {
+    println!("reached parse_expression {}", input.clone());
+
+    let (input, _) = tag("(")(input)?;
+    let (input, lhs) = parse_number(input)?;
     let (input, operator) = parse_operator(input)?;
-    let (input, rhs) = parse_expression(input)?;
+    let (input, rhs) = alt((
+        delimited(tag("("), parse_expression, tag(")")),
+        parse_number,
+    ))(input)?;
+    let (input, _) = tag(")")(input)?;
     Ok((
         input,
-        AstNode::BinaryOp {
+        AstNode::Expression {
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
             operation: match operator {
@@ -121,30 +102,11 @@ fn parse_binary_op(input: &str) -> IResult<&str, crate::AstNode> {
     ))
 }
 
-fn parse_expression(input: &str) -> IResult<&str, crate::AstNode> {
-    println!("reached parse_expression {}", input.clone());
-    let (input, expression) = delimited(
-        tag("("),
-        alt((
-            parse_number,
-            parse_unary_op,
-            parse_binary_op,
-            parse_expression,
-        )),
-        tag(")"),
-    )(input)?;
-
-    Ok((input, expression))
-}
-
 fn parse_variable(input: &str) -> IResult<&str, crate::AstNode> {
     println!("reached parse_variable {}", input.clone());
     let (input, name) = parse_name(input)?;
     let (input, _) = tag(" = ")(input)?;
-    let (input, expr) = terminated(
-        alt((parse_unary_op, parse_number, parse_expression)),
-        char(';'),
-    )(input)?;
+    let (input, expr) = terminated(alt((parse_number, parse_expression)), char(';'))(input)?;
 
     Ok((
         input,
@@ -185,18 +147,6 @@ fn main() -> () {
         Ok(("", AstNode::Name("test".to_string())))
     );
 
-    println!("\n\nTEST parse_unary_op negative");
-    assert_eq!(
-        parse_unary_op("-2"),
-        Ok((
-            "",
-            AstNode::UnaryOp {
-                operation: UnaryOperation::Negate,
-                expr: Box::new(AstNode::Double(2.0))
-            }
-        ))
-    );
-
     println!("\n\nTEST parse_variable double");
     assert_eq!(
         parse_variable("test = 1.2;"),
@@ -216,20 +166,17 @@ fn main() -> () {
             "",
             AstNode::Variable {
                 name: Box::new(AstNode::Name("var".to_string())),
-                expr: Box::new(AstNode::UnaryOp {
-                    operation: UnaryOperation::Negate,
-                    expr: Box::new(AstNode::Double(2.0))
-                })
+                expr: Box::new(AstNode::Double(-2.0))
             }
         ))
     );
 
     println!("\n\nTEST parse_expression");
     assert_eq!(
-        parse_variable("var = (2 / 2);"),
+        parse_expression("(2 / 2)"),
         Ok((
             "",
-            AstNode::BinaryOp {
+            AstNode::Expression {
                 operation: BinaryOperation::Divide,
                 lhs: Box::new(AstNode::Double(2.0)),
                 rhs: Box::new(AstNode::Double(2.0))
@@ -244,7 +191,7 @@ fn main() -> () {
             "",
             AstNode::Variable {
                 name: Box::new(AstNode::Name("var".to_string())),
-                expr: Box::new(AstNode::BinaryOp {
+                expr: Box::new(AstNode::Expression {
                     operation: BinaryOperation::Divide,
                     lhs: Box::new(AstNode::Double(2.0)),
                     rhs: Box::new(AstNode::Double(2.0))
@@ -260,13 +207,13 @@ fn main() -> () {
             "",
             AstNode::Variable {
                 name: Box::new(AstNode::Name("var".to_string())),
-                expr: Box::new(AstNode::BinaryOp {
+                expr: Box::new(AstNode::Expression {
                     operation: BinaryOperation::Multiply,
                     lhs: Box::new(AstNode::Double(2.0)),
-                    rhs: Box::new(AstNode::BinaryOp {
+                    rhs: Box::new(AstNode::Expression {
                         operation: BinaryOperation::Multiply,
                         lhs: Box::new(AstNode::Double(3.0)),
-                        rhs: Box::new(AstNode::BinaryOp {
+                        rhs: Box::new(AstNode::Expression {
                             operation: BinaryOperation::Multiply,
                             lhs: Box::new(AstNode::Double(4.0)),
                             rhs: Box::new(AstNode::Double(5.0)),
@@ -283,7 +230,7 @@ fn main() -> () {
     //         "",
     //         AstNode::Variable {
     //             name: Box::new(AstNode::Name("var".to_string())),
-    //             expr: Box::new(AstNode::BinaryOp {
+    //             expr: Box::new(AstNode::Expression {
     //                 operation: BinaryOperation::Multiply,
     //                 lhs: Box::new(AstNode::Double(2.0)),
     //                 rhs: Box::new(AstNode::Double(2.0))
