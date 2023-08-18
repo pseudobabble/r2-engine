@@ -78,12 +78,9 @@ fn parse_expression(input: &str) -> IResult<&str, crate::AstNode> {
     println!("reached parse_expression {}", input.clone());
 
     let (input, _) = tag("(")(input)?;
-    let (input, lhs) = parse_number(input)?;
+    let (input, lhs) = alt((parse_number, parse_expression))(input)?;
     let (input, operator) = parse_operator(input)?;
-    let (input, rhs) = alt((
-        delimited(tag("("), parse_expression, tag(")")),
-        parse_number,
-    ))(input)?;
+    let (input, rhs) = alt((parse_expression, parse_number))(input)?;
     let (input, _) = tag(")")(input)?;
     Ok((
         input,
@@ -180,6 +177,27 @@ fn main() -> () {
                 operation: BinaryOperation::Divide,
                 lhs: Box::new(AstNode::Double(2.0)),
                 rhs: Box::new(AstNode::Double(2.0))
+            }
+        ))
+    );
+
+    println!("\n\nTEST parse multi term expression");
+    assert_eq!(
+        parse_expression("((2 / 2) + (4 * 4))"),
+        Ok((
+            "",
+            AstNode::Expression {
+                operation: BinaryOperation::Add,
+                lhs: Box::new(AstNode::Expression {
+                    operation: BinaryOperation::Divide,
+                    lhs: Box::new(AstNode::Double(2.0)),
+                    rhs: Box::new(AstNode::Double(2.0))
+                }),
+                rhs: Box::new(AstNode::Expression {
+                    operation: BinaryOperation::Multiply,
+                    lhs: Box::new(AstNode::Double(4.0)),
+                    rhs: Box::new(AstNode::Double(4.0))
+                })
             }
         ))
     );
