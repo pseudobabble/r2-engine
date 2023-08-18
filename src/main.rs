@@ -4,10 +4,10 @@ extern crate uom;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{alpha1, char, space0};
+use nom::multi::many0;
 use nom::number::complete::double;
-use nom::sequence::{delimited, preceded, terminated, tuple};
+use nom::sequence::{preceded, terminated};
 use nom::IResult;
-use std::str::FromStr;
 
 /// (average_wage_per_unit_calendar_time * (avoided_days_of_lost_due_to_anxiety + avoided_days_of_lost_due_to_depression))
 ///  * ((proportion_proxy_benefit_attributed_to_wellbeing_anxiety + proportion_proxy_benefit_attributed_to_wellbeing_depression) / 2)
@@ -78,9 +78,9 @@ fn parse_expression(input: &str) -> IResult<&str, crate::AstNode> {
     println!("reached parse_expression {}", input.clone());
 
     let (input, _) = tag("(")(input)?;
-    let (input, lhs) = alt((parse_number, parse_expression))(input)?;
+    let (input, lhs) = alt((parse_number, parse_name, parse_expression))(input)?;
     let (input, operator) = parse_operator(input)?;
-    let (input, rhs) = alt((parse_expression, parse_number))(input)?;
+    let (input, rhs) = alt((parse_expression, parse_name, parse_number))(input)?;
     let (input, _) = tag(")")(input)?;
     Ok((
         input,
@@ -112,6 +112,10 @@ fn parse_variable(input: &str) -> IResult<&str, crate::AstNode> {
             expr: Box::new(expr),
         },
     ))
+}
+
+fn parse_program(input: &str) -> IResult<&str, Vec<crate::AstNode>> {
+    many0(preceded(space0, parse_variable))(input)
 }
 
 fn main() -> () {
@@ -242,20 +246,35 @@ fn main() -> () {
         ))
     );
 
-    // assert_eq!(
-    //     parse_variable("x = 2 * 2; y = 1; c = x + y"),
-    //     Ok((
-    //         "",
-    //         AstNode::Variable {
-    //             name: Box::new(AstNode::Name("var".to_string())),
-    //             expr: Box::new(AstNode::Expression {
-    //                 operation: BinaryOperation::Multiply,
-    //                 lhs: Box::new(AstNode::Double(2.0)),
-    //                 rhs: Box::new(AstNode::Double(2.0))
-    //             })
-    //         }
-    //     ))
-    // );
+    println!("\n\nTEST parse variables and abstract expressions");
+    assert_eq!(
+        parse_program("x = (2 * 2); y = 1; z = (x + y);"),
+        Ok((
+            "",
+            vec![
+                AstNode::Variable {
+                    name: Box::new(AstNode::Name("x".to_string())),
+                    expr: Box::new(AstNode::Expression {
+                        operation: BinaryOperation::Multiply,
+                        lhs: Box::new(AstNode::Double(2.0)),
+                        rhs: Box::new(AstNode::Double(2.0))
+                    })
+                },
+                AstNode::Variable {
+                    name: Box::new(AstNode::Name("y".to_string())),
+                    expr: Box::new(AstNode::Double(1.0))
+                },
+                AstNode::Variable {
+                    name: Box::new(AstNode::Name("z".to_string())),
+                    expr: Box::new(AstNode::Expression {
+                        operation: BinaryOperation::Add,
+                        lhs: Box::new(AstNode::Name("x".to_string())),
+                        rhs: Box::new(AstNode::Name("y".to_string()))
+                    })
+                },
+            ]
+        ))
+    );
 
     ()
 }
