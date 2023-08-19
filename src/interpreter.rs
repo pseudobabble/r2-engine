@@ -6,8 +6,12 @@ use uom::si::f64::*;
 use uom::si::length::{kilometer, meter};
 use uom::si::time::second;
 use uom::si::velocity::{kilometer_per_second, meter_per_second};
+use uom::si::Quantity;
+use uom::Kind;
 
 use std::collections::HashMap;
+
+trait Value: Add + Sub + Mul + Div + Sized {}
 
 pub struct Interpreter {
     instructions: Vec<Vec<AstNode>>,
@@ -32,31 +36,38 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(self, expression: AstNode) -> impl Add + Sub + Mul + Div {
+    fn evaluate(self, expression: AstNode) -> impl Value {
         let value = match expression {
             AstNode::Double {
                 value: value,
                 dimension: dimension,
-            } => self.evaluate_value(value, dimension),
+            } => match dimension {
+                Dimension::Length { unit: unit } => match unit {
+                    Unit::Meter => Length::new::<meter>(value),
+                    Unit::Kilometer => Length::new::<kilometer>(value),
+                },
+            },
             AstNode::Expression {
                 operation: operation,
                 lhs: lhs,
                 rhs: rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
         };
+
+        value
     }
 
-    fn evaluate_expression(
-        self,
-        operation: BinaryOperation,
-        lhs: Box<AstNode>,
-        rhs: Box<AstNode>,
-    ) -> impl Add + Sub + Mul + Div {
+    fn evaluate_expression(self, operation: BinaryOperation, lhs: Box<AstNode>, rhs: Box<AstNode>) {
         let lhs_value = match *lhs {
             AstNode::Double {
                 value: value,
                 dimension: dimension,
-            } => self.evaluate_value(value, dimension),
+            } => match dimension {
+                Dimension::Length { unit: unit } => match unit {
+                    Unit::Meter => Length::new::<meter>(value),
+                    Unit::Kilometer => Length::new::<kilometer>(value),
+                },
+            },
             AstNode::Expression {
                 operation: operation,
                 lhs: lhs,
@@ -68,7 +79,12 @@ impl Interpreter {
             AstNode::Double {
                 value: value,
                 dimension: dimension,
-            } => self.evaluate_value(value, dimension),
+            } => match dimension {
+                Dimension::Length { unit: unit } => match unit {
+                    Unit::Meter => Length::new::<meter>(value),
+                    Unit::Kilometer => Length::new::<kilometer>(value),
+                },
+            },
             AstNode::Expression {
                 operation: operation,
                 lhs: lhs,
@@ -81,15 +97,6 @@ impl Interpreter {
             BinaryOperation::Subtract => lhs_value - rhs_value,
             BinaryOperation::Multiply => lhs_value * rhs_value,
             BinaryOperation::Divide => lhs_value / rhs_value,
-        }
-    }
-
-    fn evaluate_value(self, value: f64, dimension: Dimension) -> impl Add + Sub + Mul + Div {
-        match dimension {
-            Dimension::Length { unit: unit } => match unit {
-                Unit::Meter => Length::new::<meter>(value),
-                Unit::Kilometer => Length::new::<kilometer>(value),
-            },
         }
     }
 }
