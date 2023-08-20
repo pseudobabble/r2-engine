@@ -1,0 +1,12 @@
+#+title: Readme
+* r2engine
+WORK IN PROGRESS
+** unit aware arithmentic
+unit aware arithmetic calculations like:
+#+begin_src
+a = (2.5[m] / 3[km]);
+b = ((1[km] * 2[km]) * (3[m] - 4[m]));
+c = 1[km];
+#+end_src
+
+The input is parsed and then evaluated. The unit aware calculation is done with =uom=.

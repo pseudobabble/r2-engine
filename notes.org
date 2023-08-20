@@ -1,13 +1,48 @@
 #+title: Notes
 * Notes
 ** Things to do
+*** TODO check and label the units as base units
+universally output =DimensionedValue= in base units in the trait implementations
+*** TODO convert single numbers into base units..
+currently single number expressions are stored without converting to base units
+=c = 1[km];= produces as output:
+#+begin_example
+Calculating Variable {
+    name: Name(
+        "c",
+    ),
+    expr: Double {
+        value: 1.0,
+        dimension: Length {
+            unit: Kilometer,
+        },
+    },
+}
+
+Storing result DimensionedValue {
+    value: 1.0,
+    dimension: Length {
+        unit: Kilometer,
+    },
+}
+
+// it should be
+Storing result DimensionedValue {
+    value: 1000.0,
+    dimension: Length {
+        unit: Meter,
+    },
+}
+
+#+end_example
+its stored in km
 *** TODO Get names in
 #+begin_src
 a = 1[km];
 b = (2[m] * 2[km]);
 c = (a + b);
 #+end_src
-*** Vectorise calculations
+*** TODO Vectorise calculations
 #+begin_src
 a = [1, 2, 3, 4, 5][km];
 b = ([4, 6, 32, 7, 9][m] * [25, 2, 2, 1, 5][km]);
@@ -17,7 +52,7 @@ c = (a + b);
 Generic =DimensionedValue= with different =Mul + Add + ..= implementations
 takes =f64=, =Vec<f64>=
 
-*** Parse csvs with declared var names as column headings
+*** TODO Parse csvs with declared var names as column headings
 #+begin_src
 a = csv{height_of_side[km]};
 b = csv{width_of_base[m]};
