@@ -52,6 +52,7 @@ impl Add for DimensionedValue {
             rhs_value.clone()
         );
         let value = lhs_value + rhs_value;
+        println!("\nResult = {:#?}", value);
 
         DimensionedValue {
             value: value.value,
@@ -84,6 +85,7 @@ impl Sub for DimensionedValue {
             lhs_value.clone(),
         );
         let value = lhs_value - rhs_value;
+        println!("\nResult = {:#?}", value);
 
         DimensionedValue {
             value: value.value,
@@ -116,6 +118,7 @@ impl Mul for DimensionedValue {
             rhs_value.clone()
         );
         let value = lhs_value * rhs_value;
+        println!("\nResult = {:#?}", value);
 
         DimensionedValue {
             value: value.value,
@@ -148,6 +151,7 @@ impl Div for DimensionedValue {
             rhs_value.clone()
         );
         let value = lhs_value / rhs_value;
+        println!("\nResult = {:#?}", value);
 
         DimensionedValue {
             value: value.value,
