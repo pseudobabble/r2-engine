@@ -27,7 +27,6 @@ use parser::*;
 /// use fuel
 ///
 ///
-/// TODO: do distance/speed/time examples -> need the interpreter
 /// TODO: variables need units, otherwise can do valid but unintended calculations
 
 fn main() -> () {

@@ -21,8 +21,7 @@ impl Interpreter {
     pub fn run(&mut self) -> () {
         for line in &self.instructions {
             for variable in line {
-                // doesnt like the struct fields, can use a match
-
+                println!("\nCalculating {:#?}", variable.clone());
                 let name = match variable {
                     AstNode::Variable { name, expr: _expr } => match *name.clone() {
                         AstNode::Name(name) => name,
@@ -39,7 +38,9 @@ impl Interpreter {
                     _ => panic!("Variable should be of type AstNode::Variable"),
                 };
 
+                println!("\nStoring result {:#?}", dimensioned_value.clone());
                 self.memory.insert(name, dimensioned_value);
+                println!("=================================\n\n");
             }
         }
     }

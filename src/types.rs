@@ -32,7 +32,6 @@ impl Add for DimensionedValue {
     type Output = DimensionedValue;
 
     fn add(self, rhs: Self) -> Self {
-        // unit calculation, back to base units
         let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit } => match unit {
                 Unit::Meter => Length::new::<meter>(self.value),
@@ -47,6 +46,11 @@ impl Add for DimensionedValue {
             },
         };
 
+        println!(
+            "\n\nAdding {:#?} to {:#?}",
+            lhs_value.clone(),
+            rhs_value.clone()
+        );
         let value = lhs_value + rhs_value;
 
         DimensionedValue {
@@ -60,7 +64,6 @@ impl Sub for DimensionedValue {
     type Output = DimensionedValue;
 
     fn sub(self, rhs: Self) -> Self {
-        // unit calculation, back to base units
         let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit } => match unit {
                 Unit::Meter => Length::new::<meter>(self.value),
@@ -75,6 +78,11 @@ impl Sub for DimensionedValue {
             },
         };
 
+        println!(
+            "\n\nSubtracting {:#?} from {:#?}",
+            rhs_value.clone(),
+            lhs_value.clone(),
+        );
         let value = lhs_value - rhs_value;
 
         DimensionedValue {
@@ -88,7 +96,6 @@ impl Mul for DimensionedValue {
     type Output = DimensionedValue;
 
     fn mul(self, rhs: Self) -> Self {
-        // unit calculation, back to base units
         let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit } => match unit {
                 Unit::Meter => Length::new::<meter>(self.value),
@@ -103,6 +110,11 @@ impl Mul for DimensionedValue {
             },
         };
 
+        println!(
+            "\n\nMultiplying {:#?} with {:#?}",
+            lhs_value.clone(),
+            rhs_value.clone()
+        );
         let value = lhs_value * rhs_value;
 
         DimensionedValue {
@@ -116,8 +128,6 @@ impl Div for DimensionedValue {
     type Output = DimensionedValue;
 
     fn div(self, rhs: Self) -> Self {
-        println!("\n\nDividing {:#?} into {:#?}", self.clone(), rhs.clone());
-        // unit calculation, back to base units
         let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit } => match unit {
                 Unit::Meter => Length::new::<meter>(self.value),
