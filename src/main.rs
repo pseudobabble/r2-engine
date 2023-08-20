@@ -31,11 +31,6 @@ use parser::*;
 /// TODO: variables need units, otherwise can do valid but unintended calculations
 
 fn main() -> () {
-    // println!(
-    //     "{:#?}",
-    //     parse_line("x = (2[m] * 2[kilometer]); y = 1[km]; z = (x + y);")
-    // );
-
     let mut test_file = File::open("./test.r2").unwrap();
     let mut input_file_contents = String::new();
     test_file.read_to_string(&mut input_file_contents).unwrap();
@@ -57,8 +52,7 @@ fn main() -> () {
         i.run();
 
         println!("{:#?}", i.memory);
-        // let result = evaluate(parsed_line);
-        // println!("{:?}", result);
+
         ()
     }
 }

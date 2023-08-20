@@ -24,10 +24,7 @@ impl Interpreter {
                 // doesnt like the struct fields, can use a match
 
                 let name = match variable {
-                    AstNode::Variable {
-                        name: name,
-                        expr: _expr,
-                    } => match *name.clone() {
+                    AstNode::Variable { name, expr: _expr } => match *name.clone() {
                         AstNode::Name(name) => name,
                         _ => panic!("Variable name should be of type AstNode::Name"),
                     },
@@ -49,17 +46,11 @@ impl Interpreter {
 
     fn evaluate(&self, expression: AstNode) -> DimensionedValue {
         let value = match expression {
-            AstNode::Double {
-                value: value,
-                dimension: dimension,
-            } => DimensionedValue {
-                value: value,
-                dimension: dimension,
-            },
+            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
             AstNode::Expression {
-                operation: operation,
-                lhs: lhs,
-                rhs: rhs,
+                operation,
+                lhs,
+                rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
             _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
         };
@@ -74,33 +65,21 @@ impl Interpreter {
         rhs: Box<AstNode>,
     ) -> DimensionedValue {
         let lhs_value = match *lhs {
-            AstNode::Double {
-                value: value,
-                dimension: dimension,
-            } => DimensionedValue {
-                value: value,
-                dimension: dimension,
-            },
+            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
             AstNode::Expression {
-                operation: operation,
-                lhs: lhs,
-                rhs: rhs,
+                operation,
+                lhs,
+                rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
             _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
         };
 
         let rhs_value = match *rhs {
-            AstNode::Double {
-                value: value,
-                dimension: dimension,
-            } => DimensionedValue {
-                value: value,
-                dimension: dimension,
-            },
+            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
             AstNode::Expression {
-                operation: operation,
-                lhs: lhs,
-                rhs: rhs,
+                operation,
+                lhs,
+                rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
             _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double",),
         };
