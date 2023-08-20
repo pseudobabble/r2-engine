@@ -1,3 +1,8 @@
+extern crate dimensioned;
+
+use dimensioned::si::{Meter, Second};
+use dimensioned::traits::Dimensioned;
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum BinaryOperation {
     Add,
@@ -7,24 +12,12 @@ pub enum BinaryOperation {
     Power,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Unit {
-    Meter,
-    Kilometer,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Dimension {
-    Length { unit: Unit },
-    Volume { unit: Unit },
-}
-
 #[derive(PartialEq, Debug, Clone)]
 pub enum AstNode {
     Print(Box<AstNode>),
     Double {
         value: f64,
-        dimension: Dimension,
+        dimension: Box<dyn Dimensioned>,
     },
     Name(String),
     Expression {

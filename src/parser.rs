@@ -1,4 +1,7 @@
+extern crate dimensioned;
 extern crate nom;
+
+use dimensioned::si::{self, Meter, Second, M};
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
@@ -8,9 +11,11 @@ use nom::number::complete::double;
 use nom::sequence::{delimited, preceded, terminated};
 use nom::IResult;
 
+use dimensioned::traits::Dimensioned;
+
 use super::types::*;
 
-fn parse_length(input: &str) -> IResult<&str, Dimension> {
+fn parse_length(input: &str) -> IResult<&str, Dimensioned> {
     println!("reached parse_length {}", input.clone());
 
     // TODO: none of this is very nice, differentiate unit families better
@@ -31,29 +36,10 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
     println!("parsed unit alias {}", unit_alias.clone());
 
     let dimension = match unit_alias {
-        "m" => Dimension::Length { unit: Unit::Meter },
-        "meter" => Dimension::Length { unit: Unit::Meter },
-        "meters" => Dimension::Length { unit: Unit::Meter },
-        "km" => Dimension::Length {
-            unit: Unit::Kilometer,
-        },
-        "kilometer" => Dimension::Length {
-            unit: Unit::Kilometer,
-        },
-        "kilometers" => Dimension::Length {
-            unit: Unit::Kilometer,
-        },
+        "m" | "meter" | "meters" => Meter * 1,
+        "km" | "kilometer" | "kilometers" => Meter * 1000.0,
         _ => panic!("Unsupported unit alias {}", unit_alias),
     };
-
-    Ok((input, dimension))
-}
-
-/// Switch on dimensions
-fn parse_dimension(input: &str) -> IResult<&str, Dimension> {
-    println!("reached parse_dimension {}", input.clone());
-    let (input, dimension) = parse_length(input)?;
-    // let (input, dimension) = delimited(tag("["), alt((parse_length, parse_volume)), tag("]"))(input)?;
 
     Ok((input, dimension))
 }
