@@ -1,24 +1,15 @@
 use super::types::*;
 
-use uom::lib::ops::{Add, Div, Mul, Sub};
-use uom::si::f64;
-use uom::si::f64::*;
-use uom::si::length::{kilometer, meter};
-use uom::si::time::second;
-use uom::si::velocity::{kilometer_per_second, meter_per_second};
-use uom::si::Quantity;
-use uom::Kind;
-
 use std::collections::HashMap;
 
-trait Value: Add + Sub + Mul + Div + Sized {}
-
+#[derive(Debug, Clone)]
 pub struct Interpreter {
     instructions: Vec<Vec<AstNode>>,
-    memory: HashMap<String, f64>,
+    memory: HashMap<String, DimensionedValue>,
 }
 
 // https://github.com/iliekturtles/uom/issues/391
+
 impl Interpreter {
     pub fn new(instructions: Vec<Vec<AstNode>>) -> Interpreter {
         Interpreter {
@@ -27,69 +18,91 @@ impl Interpreter {
         }
     }
 
-    pub fn run(self) -> () {
-        for line in self.instructions {
+    pub fn run(&mut self) -> () {
+        for line in &self.instructions {
             for variable in line {
-                let dimensioned_value = self.evaluate(variable.expression);
-                self.memory.insert(variable.name, dimensioned_value);
+                // doesnt like the struct fields, can use a match
+
+                let name = match variable {
+                    AstNode::Variable {
+                        name: name,
+                        expr: _expr,
+                    } => match **name {
+                        AstNode::Name(name) => name,
+                        _ => panic!("Variable name should be of type AstNode::Name"),
+                    },
+                    _ => panic!("Variable should be of type AstNode::Variable"),
+                };
+
+                let dimensioned_value = match variable {
+                    AstNode::Variable {
+                        name: _name,
+                        expr: expression,
+                    } => self.evaluate(**expression),
+                    _ => panic!("Variable should be of type AstNode::Variable"),
+                };
+
+                self.memory.insert(name, dimensioned_value);
             }
         }
     }
 
-    fn evaluate(self, expression: AstNode) -> impl Value {
+    fn evaluate(&self, expression: AstNode) -> DimensionedValue {
         let value = match expression {
             AstNode::Double {
                 value: value,
                 dimension: dimension,
-            } => match dimension {
-                Dimension::Length { unit: unit } => match unit {
-                    Unit::Meter => Length::new::<meter>(value),
-                    Unit::Kilometer => Length::new::<kilometer>(value),
-                },
+            } => DimensionedValue {
+                value: value,
+                dimension: dimension,
             },
             AstNode::Expression {
                 operation: operation,
                 lhs: lhs,
                 rhs: rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
+            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
         };
 
         value
     }
 
-    fn evaluate_expression(self, operation: BinaryOperation, lhs: Box<AstNode>, rhs: Box<AstNode>) {
+    fn evaluate_expression(
+        &self,
+        operation: BinaryOperation,
+        lhs: Box<AstNode>,
+        rhs: Box<AstNode>,
+    ) -> DimensionedValue {
         let lhs_value = match *lhs {
             AstNode::Double {
                 value: value,
                 dimension: dimension,
-            } => match dimension {
-                Dimension::Length { unit: unit } => match unit {
-                    Unit::Meter => Length::new::<meter>(value),
-                    Unit::Kilometer => Length::new::<kilometer>(value),
-                },
+            } => DimensionedValue {
+                value: value,
+                dimension: dimension,
             },
             AstNode::Expression {
                 operation: operation,
                 lhs: lhs,
                 rhs: rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
+            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
         };
 
         let rhs_value = match *rhs {
             AstNode::Double {
                 value: value,
                 dimension: dimension,
-            } => match dimension {
-                Dimension::Length { unit: unit } => match unit {
-                    Unit::Meter => Length::new::<meter>(value),
-                    Unit::Kilometer => Length::new::<kilometer>(value),
-                },
+            } => DimensionedValue {
+                value: value,
+                dimension: dimension,
             },
             AstNode::Expression {
                 operation: operation,
                 lhs: lhs,
                 rhs: rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
+            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double",),
         };
 
         match operation {

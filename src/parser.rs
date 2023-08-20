@@ -31,16 +31,8 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
     println!("parsed unit alias {}", unit_alias.clone());
 
     let dimension = match unit_alias {
-        "m" => Dimension::Length { unit: Unit::Meter },
-        "meter" => Dimension::Length { unit: Unit::Meter },
-        "meters" => Dimension::Length { unit: Unit::Meter },
-        "km" => Dimension::Length {
-            unit: Unit::Kilometer,
-        },
-        "kilometer" => Dimension::Length {
-            unit: Unit::Kilometer,
-        },
-        "kilometers" => Dimension::Length {
+        "meters" | "meter" | "m" => Dimension::Length { unit: Unit::Meter },
+        "kilometers" | "kilometer" | "km" => Dimension::Length {
             unit: Unit::Kilometer,
         },
         _ => panic!("Unsupported unit alias {}", unit_alias),
@@ -111,7 +103,6 @@ fn parse_expression(input: &str) -> IResult<&str, AstNode> {
                 "-" => BinaryOperation::Subtract,
                 "*" => BinaryOperation::Multiply,
                 "/" => BinaryOperation::Divide,
-                "^" => BinaryOperation::Power,
                 _ => panic!("Unsupported binary operation {}", operator),
             },
         },
