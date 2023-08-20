@@ -1,0 +1,25 @@
+#+title: Notes
+* Notes
+** Things to do
+*** TODO Get names in
+#+begin_src
+a = 1[km];
+b = (2[m] * 2[km]);
+c = (a + b);
+#+end_src
+*** Vectorise calculations
+#+begin_src
+a = [1, 2, 3, 4, 5][km];
+b = ([4, 6, 32, 7, 9][m] * [25, 2, 2, 1, 5][km]);
+c = (a + b);
+#+end_src
+
+Generic =DimensionedValue= with different =Mul + Add + ..= implementations
+takes =f64=, =Vec<f64>=
+
+*** Parse csvs with declared var names as column headings
+#+begin_src
+a = csv{height_of_side[km]};
+b = csv{width_of_base[m]};
+c = (a * b);
+#+end_src
