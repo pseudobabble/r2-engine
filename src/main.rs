@@ -46,13 +46,13 @@ fn main() -> () {
             process::exit(1);
         }
         program.push(parsed_line);
-
-        let mut i = Interpreter::new(program.clone());
-
-        i.run();
-
-        println!("{:#?}", i.memory);
-
-        ()
     }
+
+    let mut i = Interpreter::new(program.clone());
+
+    i.run();
+
+    println!("{:#?}", i.memory);
+
+    ()
 }

@@ -40,7 +40,7 @@ impl Add for DimensionedValue {
             },
         };
 
-        let rhs_value = match self.dimension.clone() {
+        let rhs_value = match rhs.dimension.clone() {
             Dimension::Length { unit } => match unit {
                 Unit::Meter => Length::new::<meter>(rhs.value),
                 Unit::Kilometer => Length::new::<kilometer>(rhs.value),
@@ -68,7 +68,7 @@ impl Sub for DimensionedValue {
             },
         };
 
-        let rhs_value = match self.dimension.clone() {
+        let rhs_value = match rhs.dimension.clone() {
             Dimension::Length { unit } => match unit {
                 Unit::Meter => Length::new::<meter>(rhs.value),
                 Unit::Kilometer => Length::new::<kilometer>(rhs.value),
@@ -96,7 +96,7 @@ impl Mul for DimensionedValue {
             },
         };
 
-        let rhs_value = match self.dimension.clone() {
+        let rhs_value = match rhs.dimension.clone() {
             Dimension::Length { unit } => match unit {
                 Unit::Meter => Length::new::<meter>(rhs.value),
                 Unit::Kilometer => Length::new::<kilometer>(rhs.value),
@@ -116,6 +116,7 @@ impl Div for DimensionedValue {
     type Output = DimensionedValue;
 
     fn div(self, rhs: Self) -> Self {
+        println!("\n\nDividing {:#?} into {:#?}", self.clone(), rhs.clone());
         // unit calculation, back to base units
         let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit } => match unit {
@@ -124,13 +125,18 @@ impl Div for DimensionedValue {
             },
         };
 
-        let rhs_value = match self.dimension.clone() {
+        let rhs_value = match rhs.dimension.clone() {
             Dimension::Length { unit } => match unit {
                 Unit::Meter => Length::new::<meter>(rhs.value),
                 Unit::Kilometer => Length::new::<kilometer>(rhs.value),
             },
         };
 
+        println!(
+            "\n\nDividing {:#?} into {:#?}",
+            lhs_value.clone(),
+            rhs_value.clone()
+        );
         let value = lhs_value / rhs_value;
 
         DimensionedValue {
