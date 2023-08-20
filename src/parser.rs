@@ -11,7 +11,7 @@ use nom::IResult;
 use super::types::*;
 
 fn parse_length(input: &str) -> IResult<&str, Dimension> {
-    println!("reached parse_length {}", input.clone());
+    // println!("reached parse_length {}", input.clone());
 
     // TODO: none of this is very nice, differentiate unit families better
 
@@ -28,7 +28,6 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
         )),
         tag("]"),
     )(input)?;
-    println!("parsed unit alias {}", unit_alias.clone());
 
     let dimension = match unit_alias {
         "meters" | "meter" | "m" => Dimension::Length { unit: Unit::Meter },
@@ -43,7 +42,7 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
 
 /// Switch on dimensions
 fn parse_dimension(input: &str) -> IResult<&str, Dimension> {
-    println!("reached parse_dimension {}", input.clone());
+    // println!("reached parse_dimension {}", input.clone());
     let (input, dimension) = parse_length(input)?;
     // let (input, dimension) = delimited(tag("["), alt((parse_length, parse_volume)), tag("]"))(input)?;
 
@@ -51,12 +50,10 @@ fn parse_dimension(input: &str) -> IResult<&str, Dimension> {
 }
 
 fn parse_number(number: &str) -> IResult<&str, AstNode> {
-    println!("reached parse_number {}", number.clone());
+    // println!("reached parse_number {}", number.clone());
     let (input, number) = double(number)?;
-    println!("parsed number {}", number.clone());
 
     let (input, dimension) = parse_dimension(input)?;
-    println!("parsed dimension {:#?}", dimension.clone());
 
     Ok((
         input,
@@ -68,14 +65,14 @@ fn parse_number(number: &str) -> IResult<&str, AstNode> {
 }
 
 fn parse_name(name: &str) -> IResult<&str, AstNode> {
-    println!("reached parse_name {}", name.clone());
+    // println!("reached parse_name {}", name.clone());
     let (input, name) = alpha1(name)?;
 
     Ok((input, AstNode::Name(name.to_string())))
 }
 
 fn parse_operator(input: &str) -> IResult<&str, &str> {
-    println!("reached parse_operator {}", input.clone());
+    // println!("reached parse_operator {}", input.clone());
     Ok(alt((
         terminated(preceded(space0, tag("+")), space0),
         terminated(preceded(space0, tag("-")), space0),
@@ -86,7 +83,7 @@ fn parse_operator(input: &str) -> IResult<&str, &str> {
 }
 
 fn parse_expression(input: &str) -> IResult<&str, AstNode> {
-    println!("reached parse_expression {}", input.clone());
+    // println!("reached parse_expression {}", input.clone());
 
     let (input, _) = tag("(")(input)?;
     let (input, lhs) = alt((parse_number, parse_name, parse_expression))(input)?;
@@ -110,7 +107,7 @@ fn parse_expression(input: &str) -> IResult<&str, AstNode> {
 }
 
 fn parse_variable(input: &str) -> IResult<&str, AstNode> {
-    println!("reached parse_variable {}", input.clone());
+    // println!("reached parse_variable {}", input.clone());
     let (input, name) = parse_name(input)?;
     let (input, _) = tag(" = ")(input)?;
     let (input, expr) = terminated(alt((parse_number, parse_expression)), char(';'))(input)?;

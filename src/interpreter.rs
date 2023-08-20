@@ -5,7 +5,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct Interpreter {
     instructions: Vec<Vec<AstNode>>,
-    memory: HashMap<String, DimensionedValue>,
+    pub memory: HashMap<String, DimensionedValue>,
 }
 
 // https://github.com/iliekturtles/uom/issues/391
@@ -27,7 +27,7 @@ impl Interpreter {
                     AstNode::Variable {
                         name: name,
                         expr: _expr,
-                    } => match **name {
+                    } => match *name.clone() {
                         AstNode::Name(name) => name,
                         _ => panic!("Variable name should be of type AstNode::Name"),
                     },
@@ -38,7 +38,7 @@ impl Interpreter {
                     AstNode::Variable {
                         name: _name,
                         expr: expression,
-                    } => self.evaluate(**expression),
+                    } => self.evaluate(*expression.clone()),
                     _ => panic!("Variable should be of type AstNode::Variable"),
                 };
 
@@ -132,4 +132,6 @@ fn test_interpreter() {
             }),
         }),
     }]]);
+
+    println!("{:#?}", i.memory);
 }

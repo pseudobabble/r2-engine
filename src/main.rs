@@ -8,6 +8,7 @@ pub mod interpreter;
 pub mod parser;
 pub mod types;
 
+use interpreter::Interpreter;
 use parser::*;
 
 /// (average_wage_per_unit_calendar_time * (avoided_days_of_lost_due_to_anxiety + avoided_days_of_lost_due_to_depression))
@@ -30,10 +31,10 @@ use parser::*;
 /// TODO: variables need units, otherwise can do valid but unintended calculations
 
 fn main() -> () {
-    println!(
-        "{:#?}",
-        parse_line("x = (2[m] * 2[kilometer]); y = 1[km]; z = (x + y);")
-    );
+    // println!(
+    //     "{:#?}",
+    //     parse_line("x = (2[m] * 2[kilometer]); y = 1[km]; z = (x + y);")
+    // );
 
     let mut test_file = File::open("./test.r2").unwrap();
     let mut input_file_contents = String::new();
@@ -51,7 +52,11 @@ fn main() -> () {
         }
         program.push(parsed_line);
 
-        println!("{:#?}", program);
+        let mut i = Interpreter::new(program.clone());
+
+        i.run();
+
+        println!("{:#?}", i.memory);
         // let result = evaluate(parsed_line);
         // println!("{:?}", result);
         ()

@@ -24,8 +24,8 @@ pub enum Dimension {
 
 #[derive(Debug, Clone)]
 pub struct DimensionedValue {
-    value: f64,
-    dimension: Dimension,
+    pub value: f64,
+    pub dimension: Dimension,
 }
 
 impl Add for DimensionedValue {
@@ -33,14 +33,14 @@ impl Add for DimensionedValue {
 
     fn add(self, rhs: Self) -> Self {
         // unit calculation, back to base units
-        let lhs_value = match self.dimension {
+        let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit: unit } => match unit {
                 Unit::Meter => Length::new::<meter>(self.value),
                 Unit::Kilometer => Length::new::<kilometer>(self.value),
             },
         };
 
-        let rhs_value = match self.dimension {
+        let rhs_value = match self.dimension.clone() {
             Dimension::Length { unit: unit } => match unit {
                 Unit::Meter => Length::new::<meter>(rhs.value),
                 Unit::Kilometer => Length::new::<kilometer>(rhs.value),
@@ -61,14 +61,14 @@ impl Sub for DimensionedValue {
 
     fn sub(self, rhs: Self) -> Self {
         // unit calculation, back to base units
-        let lhs_value = match self.dimension {
+        let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit: unit } => match unit {
                 Unit::Meter => Length::new::<meter>(self.value),
                 Unit::Kilometer => Length::new::<kilometer>(self.value),
             },
         };
 
-        let rhs_value = match self.dimension {
+        let rhs_value = match self.dimension.clone() {
             Dimension::Length { unit: unit } => match unit {
                 Unit::Meter => Length::new::<meter>(rhs.value),
                 Unit::Kilometer => Length::new::<kilometer>(rhs.value),
@@ -89,14 +89,14 @@ impl Mul for DimensionedValue {
 
     fn mul(self, rhs: Self) -> Self {
         // unit calculation, back to base units
-        let lhs_value = match self.dimension {
+        let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit: unit } => match unit {
                 Unit::Meter => Length::new::<meter>(self.value),
                 Unit::Kilometer => Length::new::<kilometer>(self.value),
             },
         };
 
-        let rhs_value = match self.dimension {
+        let rhs_value = match self.dimension.clone() {
             Dimension::Length { unit: unit } => match unit {
                 Unit::Meter => Length::new::<meter>(rhs.value),
                 Unit::Kilometer => Length::new::<kilometer>(rhs.value),
@@ -117,14 +117,14 @@ impl Div for DimensionedValue {
 
     fn div(self, rhs: Self) -> Self {
         // unit calculation, back to base units
-        let lhs_value = match self.dimension {
+        let lhs_value = match self.dimension.clone() {
             Dimension::Length { unit: unit } => match unit {
                 Unit::Meter => Length::new::<meter>(self.value),
                 Unit::Kilometer => Length::new::<kilometer>(self.value),
             },
         };
 
-        let rhs_value = match self.dimension {
+        let rhs_value = match self.dimension.clone() {
             Dimension::Length { unit: unit } => match unit {
                 Unit::Meter => Length::new::<meter>(rhs.value),
                 Unit::Kilometer => Length::new::<kilometer>(rhs.value),
