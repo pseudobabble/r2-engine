@@ -65,6 +65,7 @@ impl Interpreter {
         lhs: Box<AstNode>,
         rhs: Box<AstNode>,
     ) -> DimensionedValue {
+        // TODO convert to base units
         let lhs_value = match *lhs {
             AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
             AstNode::Expression {

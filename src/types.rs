@@ -10,7 +10,7 @@ use uom::si::length::{kilometer, meter};
 // x^2 * y^1 = z^3
 // count the terms of the same dimension
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Debug, Clone)]
 pub enum BinaryOperation {
     Add,
     Subtract,
@@ -18,30 +18,69 @@ pub enum BinaryOperation {
     Divide,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Unit {
+#[derive(PartialEq, PartialOrd, Eq, Debug, Clone)]
+pub enum UnitIdentity {
+    None,
     Meter,
     Kilometer,
+    SquareMeter,
+    SquareKilometer,
+    CubicMeter,
+    CubicKilometer,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Dimension {
-    Length { unit: Unit, power: i64 },
+#[derive(PartialEq, PartialOrd, Debug, Clone)]
+pub struct Unit {
+    pub unit: UnitIdentity,
+    pub conversion_factor: f64,
+}
+
+#[derive(PartialEq, PartialOrd, Debug, Clone)]
+pub struct Dimension {
+    pub unit: Unit,
+    pub power: i64,
 }
 
 impl Add for Dimension {
     type Output = Dimension;
 
     fn add(self, rhs: Self) -> Self {
-        match self {
-            // normalise to base units, meter in this case
-            Dimension::Length { unit, power } => match rhs {
-                Dimension::Length { unit, power } => Dimension::Length {
-                    unit: Unit::Meter,
+        // if LHS is Length
+        match self.power.clone() {
+            // and RHS is Length
+            1 => match rhs.power.clone() {
+                // return Length in base units
+                1 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::Meter,
+                        conversion_factor: 1.0,
+                    },
                     power: 1,
                 },
+                // Cannot add Length to eg, Area
+                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
             },
-            _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+            2 => match rhs.power.clone() {
+                2 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::SquareMeter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 2,
+                },
+                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+            },
+            3 => match rhs.power.clone() {
+                3 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::SquareMeter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 2,
+                },
+                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+            },
+            _ => panic!("Dimensions with power > 3 are not supported"),
         }
     }
 }
@@ -50,15 +89,43 @@ impl Sub for Dimension {
     type Output = Dimension;
 
     fn sub(self, rhs: Self) -> Self {
-        match self {
-            // normalise to base units, meter in this case
-            // TODO zeros are probably dimensionless
-            Dimension::Length { unit, power } => match rhs {
-                Dimension::Length { unit, power } => Dimension::Length {
-                    unit: Unit::Meter,
+        // TODO zeros are probably dimensionless
+        // if LHS is Length
+        match self.power.clone() {
+            // and RHS is Length
+            1 => match rhs.power.clone() {
+                // return Length in base units
+                1 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::Meter,
+                        conversion_factor: 1.0,
+                    },
                     power: 1,
                 },
+                // Cannot add Length to eg, Area
+                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
             },
+            2 => match rhs.power.clone() {
+                2 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::SquareMeter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 2,
+                },
+                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+            },
+            3 => match rhs.power.clone() {
+                3 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::SquareMeter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 2,
+                },
+                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+            },
+            _ => panic!("Dimensions with power > 3 are not supported"),
         }
     }
 }
@@ -67,14 +134,33 @@ impl Mul for Dimension {
     type Output = Dimension;
 
     fn mul(self, rhs: Self) -> Self {
-        match self {
-            // normalise to base units, meter in this case
-            Dimension::Length { unit, power } => match rhs {
-                Dimension::Length { unit, power } => Dimension::Length {
-                    unit: Unit::Meter,
-                    power: power + power, // TODO: does this work?
+        // 1[m^1] * 1[m^2] = 1[m^3]
+        // a^1 * a^2 = a^3
+        let result_power = self.power + rhs.power;
+
+        match result_power {
+            1 => Dimension {
+                unit: Unit {
+                    unit: UnitIdentity::Meter,
+                    conversion_factor: 1.0,
                 },
+                power: 1,
             },
+            2 => Dimension {
+                unit: Unit {
+                    unit: UnitIdentity::SquareMeter,
+                    conversion_factor: 1.0,
+                },
+                power: 2,
+            },
+            3 => Dimension {
+                unit: Unit {
+                    unit: UnitIdentity::CubicMeter,
+                    conversion_factor: 1.0,
+                },
+                power: 3,
+            },
+            _ => panic!("Dimensions with power > 3 are not supported"),
         }
     }
 }
@@ -83,14 +169,33 @@ impl Div for Dimension {
     type Output = Dimension;
 
     fn div(self, rhs: Self) -> Self {
-        match self {
-            // normalise to base units, meter in this case
-            Dimension::Length { unit, power } => match rhs {
-                Dimension::Length { unit, power } => Dimension::Length {
-                    unit: Unit::Meter,
-                    power: power - power,
+        // 1[m^6] / 1[m^3] = 1[m^3]
+        // a^6 / a^3 = a^3
+        let result_power = self.power - rhs.power;
+
+        match result_power {
+            1 => Dimension {
+                unit: Unit {
+                    unit: UnitIdentity::Meter,
+                    conversion_factor: 1.0,
                 },
+                power: 1,
             },
+            2 => Dimension {
+                unit: Unit {
+                    unit: UnitIdentity::SquareMeter,
+                    conversion_factor: 1.0,
+                },
+                power: 2,
+            },
+            3 => Dimension {
+                unit: Unit {
+                    unit: UnitIdentity::CubicMeter,
+                    conversion_factor: 1.0,
+                },
+                power: 3,
+            },
+            _ => panic!("Dimensions with power > 3 are not supported"),
         }
     }
 }
@@ -113,8 +218,10 @@ impl Add for DimensionedValue {
             rhs.dimension.clone(),
         );
 
+        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
+        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
         let dimension = self.dimension + rhs.dimension;
-        let value = (self.value + self) + rhs.value;
+        let value = lhs_value_in_base_units + rhs_value_in_base_units;
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
@@ -136,8 +243,10 @@ impl Sub for DimensionedValue {
             self.dimension.clone()
         );
 
+        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
+        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
         let dimension = self.dimension - rhs.dimension;
-        let value = self.value - rhs.value;
+        let value = lhs_value_in_base_units - rhs_value_in_base_units;
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
@@ -159,8 +268,10 @@ impl Mul for DimensionedValue {
             rhs.dimension.clone(),
         );
 
+        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
+        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
         let dimension = self.dimension * rhs.dimension;
-        let value = self.value * rhs.value;
+        let value = lhs_value_in_base_units * rhs_value_in_base_units;
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
@@ -182,8 +293,10 @@ impl Div for DimensionedValue {
             rhs.dimension.clone(),
         );
 
+        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
+        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
         let dimension = self.dimension / rhs.dimension;
-        let value = self.value / rhs.value;
+        let value = lhs_value_in_base_units / rhs_value_in_base_units;
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
