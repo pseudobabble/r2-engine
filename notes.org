@@ -1,9 +1,11 @@
 #+title: Notes
 * Notes
 ** Things to do
-*** TODO check and label the units as base units
+*** DONE check and label the units as base units
+CLOSED: [2023-08-21 Mon 23:51]
 universally output =DimensionedValue= in base units in the trait implementations
-*** TODO convert single numbers into base units..
+*** DONE convert single numbers into base units..
+CLOSED: [2023-08-21 Mon 23:52]
 currently single number expressions are stored without converting to base units
 =c = 1[km];= produces as output:
 #+begin_example

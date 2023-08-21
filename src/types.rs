@@ -70,7 +70,7 @@ impl Add for Dimension {
             3 => match rhs.power.clone() {
                 3 => Dimension {
                     unit: Unit {
-                        unit: UnitIdentity::SquareMeter,
+                        unit: UnitIdentity::CubicMeter,
                         conversion_factor: 1.0,
                     },
                     power: 2,
@@ -115,7 +115,7 @@ impl Sub for Dimension {
             3 => match rhs.power.clone() {
                 3 => Dimension {
                     unit: Unit {
-                        unit: UnitIdentity::SquareMeter,
+                        unit: UnitIdentity::CubicMeter,
                         conversion_factor: 1.0,
                     },
                     power: 2,
@@ -265,7 +265,7 @@ impl Mul for DimensionedValue {
 
     fn mul(self, rhs: Self) -> Self {
         println!(
-            "\n\nMultiplying {:#?}[{:#?}] from {:#?}[{:#?}]",
+            "\n\nMultiplying {:#?}[{:#?}] with {:#?}[{:#?}]",
             self.value.clone(),
             self.dimension.clone(),
             rhs.value.clone(),
