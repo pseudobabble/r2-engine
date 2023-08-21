@@ -1,8 +1,5 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use uom::si::f64::Length;
-use uom::si::length::{kilometer, meter};
-
 // unit calculations with exponents here
 // add + sub can only work on same types
 // x/y converts to x * y^-1
@@ -80,7 +77,7 @@ impl Add for Dimension {
                 },
                 _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
             },
-            _ => panic!("Dimensions with power > 3 are not supported"),
+            _ => panic!("Unsupported dimension with power {}", self.power.clone()),
         }
     }
 }
@@ -125,7 +122,7 @@ impl Sub for Dimension {
                 },
                 _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
             },
-            _ => panic!("Dimensions with power > 3 are not supported"),
+            _ => panic!("Unsupported dimension with power {}", self.power.clone()),
         }
     }
 }
@@ -160,7 +157,7 @@ impl Mul for Dimension {
                 },
                 power: 3,
             },
-            _ => panic!("Dimensions with power > 3 are not supported"),
+            _ => panic!("Unsupported dimension with power {}", result_power),
         }
     }
 }
@@ -174,6 +171,13 @@ impl Div for Dimension {
         let result_power = self.power - rhs.power;
 
         match result_power {
+            0 => Dimension {
+                unit: Unit {
+                    unit: UnitIdentity::None,
+                    conversion_factor: 1.0,
+                },
+                power: 0,
+            },
             1 => Dimension {
                 unit: Unit {
                     unit: UnitIdentity::Meter,
@@ -195,7 +199,7 @@ impl Div for Dimension {
                 },
                 power: 3,
             },
-            _ => panic!("Dimensions with power > 3 are not supported"),
+            _ => panic!("Unsupported dimension with power {}", result_power),
         }
     }
 }
@@ -286,7 +290,7 @@ impl Div for DimensionedValue {
 
     fn div(self, rhs: Self) -> Self {
         println!(
-            "\n\nDividing {:#?}[{:#?}] from {:#?}[{:#?}]",
+            "\n\nDividing {:#?}[{:#?}] into {:#?}[{:#?}]",
             self.value.clone(),
             self.dimension.clone(),
             rhs.value.clone(),

@@ -9,4 +9,4 @@ b = ((1[km] * 2[km]) * (3[m] - 4[m]));
 c = 1[km];
 #+end_src
 
-The input is parsed and then evaluated. The unit aware calculation is done with =uom=.
+The input is parsed and then evaluated.
