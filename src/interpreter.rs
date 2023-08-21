@@ -47,6 +47,7 @@ impl Interpreter {
 
     fn evaluate(&self, expression: AstNode) -> DimensionedValue {
         let value = match expression {
+            AstNode::Name(name) => self.memory[&name],
             AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
             AstNode::Expression {
                 operation,
@@ -67,6 +68,7 @@ impl Interpreter {
     ) -> DimensionedValue {
         // TODO convert to base units
         let lhs_value = match *lhs {
+            AstNode::Name(name) => self.memory[&name],
             AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
             AstNode::Expression {
                 operation,
@@ -77,6 +79,7 @@ impl Interpreter {
         };
 
         let rhs_value = match *rhs {
+            AstNode::Name(name) => self.memory[&name],
             AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
             AstNode::Expression {
                 operation,

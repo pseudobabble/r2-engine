@@ -38,7 +38,8 @@ Storing result DimensionedValue {
 
 #+end_example
 its stored in km
-*** TODO Get names in
+*** DONE Get names in
+CLOSED: [2023-08-22 Tue 00:13]
 #+begin_src
 a = 1[km];
 b = (2[m] * 2[km]);

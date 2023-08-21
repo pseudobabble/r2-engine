@@ -15,7 +15,7 @@ pub enum BinaryOperation {
     Divide,
 }
 
-#[derive(PartialEq, PartialOrd, Eq, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy)]
 pub enum UnitIdentity {
     None,
     Meter,
@@ -26,13 +26,13 @@ pub enum UnitIdentity {
     CubicKilometer,
 }
 
-#[derive(PartialEq, PartialOrd, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Unit {
     pub unit: UnitIdentity,
     pub conversion_factor: f64,
 }
 
-#[derive(PartialEq, PartialOrd, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Dimension {
     pub unit: Unit,
     pub power: i64,
@@ -204,7 +204,7 @@ impl Div for Dimension {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct DimensionedValue {
     pub value: f64,
     pub dimension: Dimension,
