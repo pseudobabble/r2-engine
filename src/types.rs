@@ -3,6 +3,13 @@ use std::ops::{Add, Div, Mul, Sub};
 use uom::si::f64::Length;
 use uom::si::length::{kilometer, meter};
 
+// unit calculations with exponents here
+// add + sub can only work on same types
+// x/y converts to x * y^-1
+// add the exponents and count the terms
+// x^2 * y^1 = z^3
+// count the terms of the same dimension
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum BinaryOperation {
     Add,
@@ -19,7 +26,73 @@ pub enum Unit {
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Dimension {
-    Length { unit: Unit },
+    Length { unit: Unit, power: i64 },
+}
+
+impl Add for Dimension {
+    type Output = Dimension;
+
+    fn add(self, rhs: Self) -> Self {
+        match self {
+            // normalise to base units, meter in this case
+            Dimension::Length { unit, power } => match rhs {
+                Dimension::Length { unit, power } => Dimension::Length {
+                    unit: Unit::Meter,
+                    power: 1,
+                },
+            },
+            _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+        }
+    }
+}
+
+impl Sub for Dimension {
+    type Output = Dimension;
+
+    fn sub(self, rhs: Self) -> Self {
+        match self {
+            // normalise to base units, meter in this case
+            // TODO zeros are probably dimensionless
+            Dimension::Length { unit, power } => match rhs {
+                Dimension::Length { unit, power } => Dimension::Length {
+                    unit: Unit::Meter,
+                    power: 1,
+                },
+            },
+        }
+    }
+}
+
+impl Mul for Dimension {
+    type Output = Dimension;
+
+    fn mul(self, rhs: Self) -> Self {
+        match self {
+            // normalise to base units, meter in this case
+            Dimension::Length { unit, power } => match rhs {
+                Dimension::Length { unit, power } => Dimension::Length {
+                    unit: Unit::Meter,
+                    power: power + power, // TODO: does this work?
+                },
+            },
+        }
+    }
+}
+
+impl Div for Dimension {
+    type Output = Dimension;
+
+    fn div(self, rhs: Self) -> Self {
+        match self {
+            // normalise to base units, meter in this case
+            Dimension::Length { unit, power } => match rhs {
+                Dimension::Length { unit, power } => Dimension::Length {
+                    unit: Unit::Meter,
+                    power: power - power,
+                },
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -32,31 +105,21 @@ impl Add for DimensionedValue {
     type Output = DimensionedValue;
 
     fn add(self, rhs: Self) -> Self {
-        let lhs_value = match self.dimension.clone() {
-            Dimension::Length { unit } => match unit {
-                Unit::Meter => Length::new::<meter>(self.value),
-                Unit::Kilometer => Length::new::<kilometer>(self.value),
-            },
-        };
-
-        let rhs_value = match rhs.dimension.clone() {
-            Dimension::Length { unit } => match unit {
-                Unit::Meter => Length::new::<meter>(rhs.value),
-                Unit::Kilometer => Length::new::<kilometer>(rhs.value),
-            },
-        };
-
         println!(
-            "\n\nAdding {:#?} to {:#?}",
-            lhs_value.clone(),
-            rhs_value.clone()
+            "\n\nAdding {:#?}[{:#?}] to {:#?}[{:#?}]",
+            self.value.clone(),
+            self.dimension.clone(),
+            rhs.value.clone(),
+            rhs.dimension.clone(),
         );
-        let value = lhs_value + rhs_value;
-        println!("\nResult = {:#?}", value);
+
+        let dimension = self.dimension + rhs.dimension;
+        let value = (self.value + self) + rhs.value;
+        println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
-            value: value.value,
-            dimension: Dimension::Length { unit: Unit::Meter }, // TODO: should be the resulting values units!
+            value: value,
+            dimension: dimension, // TODO: should be the resulting values units!
         }
     }
 }
@@ -65,31 +128,21 @@ impl Sub for DimensionedValue {
     type Output = DimensionedValue;
 
     fn sub(self, rhs: Self) -> Self {
-        let lhs_value = match self.dimension.clone() {
-            Dimension::Length { unit } => match unit {
-                Unit::Meter => Length::new::<meter>(self.value),
-                Unit::Kilometer => Length::new::<kilometer>(self.value),
-            },
-        };
-
-        let rhs_value = match rhs.dimension.clone() {
-            Dimension::Length { unit } => match unit {
-                Unit::Meter => Length::new::<meter>(rhs.value),
-                Unit::Kilometer => Length::new::<kilometer>(rhs.value),
-            },
-        };
-
         println!(
-            "\n\nSubtracting {:#?} from {:#?}",
-            rhs_value.clone(),
-            lhs_value.clone(),
+            "\n\nSubtracting {:#?}[{:#?}] from {:#?}[{:#?}]",
+            rhs.value.clone(),
+            rhs.dimension.clone(),
+            self.value.clone(),
+            self.dimension.clone()
         );
-        let value = lhs_value - rhs_value;
-        println!("\nResult = {:#?}", value);
+
+        let dimension = self.dimension - rhs.dimension;
+        let value = self.value - rhs.value;
+        println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
-            value: value.value,
-            dimension: self.dimension,
+            value: value,
+            dimension: dimension,
         }
     }
 }
@@ -98,31 +151,21 @@ impl Mul for DimensionedValue {
     type Output = DimensionedValue;
 
     fn mul(self, rhs: Self) -> Self {
-        let lhs_value = match self.dimension.clone() {
-            Dimension::Length { unit } => match unit {
-                Unit::Meter => Length::new::<meter>(self.value),
-                Unit::Kilometer => Length::new::<kilometer>(self.value),
-            },
-        };
-
-        let rhs_value = match rhs.dimension.clone() {
-            Dimension::Length { unit } => match unit {
-                Unit::Meter => Length::new::<meter>(rhs.value),
-                Unit::Kilometer => Length::new::<kilometer>(rhs.value),
-            },
-        };
-
         println!(
-            "\n\nMultiplying {:#?} with {:#?}",
-            lhs_value.clone(),
-            rhs_value.clone()
+            "\n\nMultiplying {:#?}[{:#?}] from {:#?}[{:#?}]",
+            self.value.clone(),
+            self.dimension.clone(),
+            rhs.value.clone(),
+            rhs.dimension.clone(),
         );
-        let value = lhs_value * rhs_value;
-        println!("\nResult = {:#?}", value);
+
+        let dimension = self.dimension * rhs.dimension;
+        let value = self.value * rhs.value;
+        println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
-            value: value.value,
-            dimension: self.dimension,
+            value: value,
+            dimension: dimension,
         }
     }
 }
@@ -131,31 +174,21 @@ impl Div for DimensionedValue {
     type Output = DimensionedValue;
 
     fn div(self, rhs: Self) -> Self {
-        let lhs_value = match self.dimension.clone() {
-            Dimension::Length { unit } => match unit {
-                Unit::Meter => Length::new::<meter>(self.value),
-                Unit::Kilometer => Length::new::<kilometer>(self.value),
-            },
-        };
-
-        let rhs_value = match rhs.dimension.clone() {
-            Dimension::Length { unit } => match unit {
-                Unit::Meter => Length::new::<meter>(rhs.value),
-                Unit::Kilometer => Length::new::<kilometer>(rhs.value),
-            },
-        };
-
         println!(
-            "\n\nDividing {:#?} into {:#?}",
-            lhs_value.clone(),
-            rhs_value.clone()
+            "\n\nDividing {:#?}[{:#?}] from {:#?}[{:#?}]",
+            self.value.clone(),
+            self.dimension.clone(),
+            rhs.value.clone(),
+            rhs.dimension.clone(),
         );
-        let value = lhs_value / rhs_value;
-        println!("\nResult = {:#?}", value);
+
+        let dimension = self.dimension / rhs.dimension;
+        let value = self.value / rhs.value;
+        println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
-            value: value.value,
-            dimension: self.dimension,
+            value: value,
+            dimension: dimension,
         }
     }
 }

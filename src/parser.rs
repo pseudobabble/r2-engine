@@ -2,37 +2,50 @@ extern crate nom;
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
+use nom::character::complete::digit1;
 use nom::character::complete::{alpha1, char, space0};
 use nom::multi::many0;
 use nom::number::complete::double;
-use nom::sequence::{delimited, preceded, terminated};
+use nom::sequence::{preceded, terminated};
 use nom::IResult;
 
 use super::types::*;
 
 fn parse_length(input: &str) -> IResult<&str, Dimension> {
-    // println!("reached parse_length {}", input.clone());
+    println!("reached parse_length {}", input.clone());
 
     // TODO: none of this is very nice, differentiate unit families better
 
     // https://docs.rs/nom/latest/nom/branch/fn.alt.html
-    let (input, unit_alias) = delimited(
-        tag("["),
-        alt((
-            tag("meters"),
-            tag("meter"),
-            tag("m"), // longest to shortest!!
-            tag("kilometers"),
-            tag("kilometer"),
-            tag("km"),
-        )),
-        tag("]"),
-    )(input)?;
+    // println!("  parsing unit {}", input.clone());
+    let (input, _) = tag("[")(input)?;
+    // println!("  parsing unit {}", input.clone());
+    let (input, unit_alias) = alt((
+        tag("meters"),
+        tag("meter"),
+        tag("m"), // longest to shortest!!
+        tag("kilometers"),
+        tag("kilometer"),
+        tag("km"),
+    ))(input)?;
+    // println!("  parsing unit {}", input.clone());
+    let (input, _) = tag("^")(input)?;
+
+    // TODO: add some sugar here so we can write 1[m] instead of 1[m^1]
+    // println!("  parsing unit {}", input.clone());
+    let (input, power) = digit1(input)?;
+    // println!("  parsing unit {}", input.clone());
+    let (input, _) = tag("]")(input)?;
+    // println!("  parsing unit {}", input.clone());
 
     let dimension = match unit_alias {
-        "meters" | "meter" | "m" => Dimension::Length { unit: Unit::Meter },
+        "meters" | "meter" | "m" => Dimension::Length {
+            unit: Unit::Meter,
+            power: power.parse::<i64>().unwrap(),
+        },
         "kilometers" | "kilometer" | "km" => Dimension::Length {
             unit: Unit::Kilometer,
+            power: power.parse::<i64>().unwrap(),
         },
         _ => panic!("Unsupported unit alias {}", unit_alias),
     };
@@ -122,6 +135,7 @@ fn parse_variable(input: &str) -> IResult<&str, AstNode> {
 }
 
 pub fn parse_line(input: &str) -> IResult<&str, Vec<AstNode>> {
+    // println!("reached parse_line {}", input.clone());
     many0(preceded(space0, parse_variable))(input)
 }
 
