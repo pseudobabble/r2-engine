@@ -29,15 +29,7 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
         tag("]"),
     )(input)?;
 
-    let dimension = match unit_alias {
-        "meters" | "meter" | "m" => Dimension::Length { unit: Unit::Meter },
-        "kilometers" | "kilometer" | "km" => Dimension::Length {
-            unit: Unit::Kilometer,
-        },
-        _ => panic!("Unsupported unit alias {}", unit_alias),
-    };
-
-    Ok((input, dimension))
+    Ok((input, unit_alias))
 }
 
 /// Switch on dimensions
@@ -52,8 +44,10 @@ fn parse_dimension(input: &str) -> IResult<&str, Dimension> {
 fn parse_number(number: &str) -> IResult<&str, AstNode> {
     // println!("reached parse_number {}", number.clone());
     let (input, number) = double(number)?;
-
     let (input, dimension) = parse_dimension(input)?;
+    let number_with_unit_str = format!("{number} {dimension}");
+
+    let number
 
     Ok((
         input,
