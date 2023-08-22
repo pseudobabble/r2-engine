@@ -51,9 +51,16 @@ a = [1, 2, 3, 4, 5][km];
 b = ([4, 6, 32, 7, 9][m] * [25, 2, 2, 1, 5][km]);
 c = (a + b);
 #+end_src
+- [X] vector support
+- [ ] parse and support scalars & vectors together
+  - [ ] parse scalars as single element lists
+  - [ ] extend single element lists to length of other list
 
+#+begin_quote
 Generic =DimensionedValue= with different =Mul + Add + ..= implementations
 takes =f64=, =Vec<f64>=
+#+end_quote
+Turned out to be: generic types (=struct<T>=) with type specific behaviour in traits.
 
 *** TODO Parse csvs with declared var names as column headings
 #+begin_src
