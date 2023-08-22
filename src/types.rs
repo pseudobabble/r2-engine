@@ -42,9 +42,9 @@ impl Add for Dimension {
     type Output = Dimension;
 
     fn add(self, rhs: Self) -> Self {
-        // if LHS is Length
+        // if LHS is Length (unit^1)
         match self.power.clone() {
-            // and RHS is Length
+            // and RHS is Length (unit^1)
             1 => match rhs.power.clone() {
                 // return Length in base units
                 1 => Dimension {
@@ -86,12 +86,8 @@ impl Sub for Dimension {
     type Output = Dimension;
 
     fn sub(self, rhs: Self) -> Self {
-        // TODO zeros are probably dimensionless
-        // if LHS is Length
         match self.power.clone() {
-            // and RHS is Length
             1 => match rhs.power.clone() {
-                // return Length in base units
                 1 => Dimension {
                     unit: Unit {
                         unit: UnitIdentity::Meter,
@@ -99,7 +95,6 @@ impl Sub for Dimension {
                     },
                     power: 1,
                 },
-                // Cannot add Length to eg, Area
                 _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
             },
             2 => match rhs.power.clone() {
@@ -118,7 +113,7 @@ impl Sub for Dimension {
                         unit: UnitIdentity::CubicMeter,
                         conversion_factor: 1.0,
                     },
-                    power: 2,
+                    power: 3,
                 },
                 _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
             },
@@ -130,9 +125,9 @@ impl Sub for Dimension {
 impl Mul for Dimension {
     type Output = Dimension;
 
+    /// 1[m^1] * 1[m^2] = 1[m^3]
+    /// a^1 * a^2 = a^3
     fn mul(self, rhs: Self) -> Self {
-        // 1[m^1] * 1[m^2] = 1[m^3]
-        // a^1 * a^2 = a^3
         let result_power = self.power + rhs.power;
 
         match result_power {
@@ -230,7 +225,7 @@ impl Add for DimensionedValue {
 
         DimensionedValue {
             value: value,
-            dimension: dimension, // TODO: should be the resulting values units!
+            dimension: dimension,
         }
     }
 }
