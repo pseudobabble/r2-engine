@@ -205,6 +205,38 @@ pub struct DimensionedValue {
     pub dimension: Dimension,
 }
 
+impl DimensionedValue {
+    fn in_base_units(self) -> DimensionedValue {
+        DimensionedValue {
+            value: self.value * self.dimension.unit.conversion_factor,
+            dimension: match self.dimension.power {
+                1 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::Meter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 1,
+                },
+                2 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::SquareMeter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 1,
+                },
+                3 => Dimension {
+                    unit: Unit {
+                        unit: UnitIdentity::CubicMeter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 1,
+                },
+                _ => panic!("Unsupported dimension with power {}", self.dimension.power),
+            },
+        }
+    }
+}
+
 impl Add for DimensionedValue {
     type Output = DimensionedValue;
 
@@ -217,14 +249,12 @@ impl Add for DimensionedValue {
             rhs.dimension.clone(),
         );
 
-        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
-        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
         let dimension = self.dimension + rhs.dimension;
-        let value = lhs_value_in_base_units + rhs_value_in_base_units;
+        let value = self.in_base_units() + rhs.in_base_units();
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
-            value: value,
+            value: value.value,
             dimension: dimension,
         }
     }
@@ -242,14 +272,12 @@ impl Sub for DimensionedValue {
             self.dimension.clone()
         );
 
-        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
-        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
         let dimension = self.dimension - rhs.dimension;
-        let value = lhs_value_in_base_units - rhs_value_in_base_units;
+        let value = self.in_base_units() - rhs.in_base_units();
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
-            value: value,
+            value: value.value,
             dimension: dimension,
         }
     }
@@ -267,14 +295,12 @@ impl Mul for DimensionedValue {
             rhs.dimension.clone(),
         );
 
-        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
-        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
         let dimension = self.dimension * rhs.dimension;
-        let value = lhs_value_in_base_units * rhs_value_in_base_units;
+        let value = self.in_base_units() * *Box::new(rhs.in_base_units());
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
-            value: value,
+            value: value.value,
             dimension: dimension,
         }
     }
@@ -292,14 +318,12 @@ impl Div for DimensionedValue {
             rhs.dimension.clone(),
         );
 
-        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
-        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
         let dimension = self.dimension / rhs.dimension;
-        let value = lhs_value_in_base_units / rhs_value_in_base_units;
+        let value = self.in_base_units() / rhs.in_base_units();
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
 
         DimensionedValue {
-            value: value,
+            value: value.value,
             dimension: dimension,
         }
     }
