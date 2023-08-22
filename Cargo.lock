@@ -3,12 +3,6 @@
 version = 3
 
 [[package]]
-name = "autocfg"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
-
-[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -31,34 +25,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-traits"
-version = "0.2.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f30b0abd723be7e2ffca1272140fac1a2f084c77ec3e123c192b66af1ee9e6c2"
-dependencies = [
- "autocfg",
-]
-
-[[package]]
 name = "r2engine"
 version = "0.1.0"
 dependencies = [
  "nom",
- "uom",
-]
-
-[[package]]
-name = "typenum"
-version = "1.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
-
-[[package]]
-name = "uom"
-version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8362194c7a9845a7a7f3562173d6e1da3f24f7132018cb78fe77a5b4474187b2"
-dependencies = [
- "num-traits",
- "typenum",
 ]
