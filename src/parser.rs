@@ -4,7 +4,7 @@ use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
 use nom::character::complete::{alpha1, char, space0};
-use nom::multi::many0;
+use nom::multi::{many0, many1};
 use nom::number::complete::double;
 use nom::sequence::{delimited, preceded, terminated};
 use nom::IResult;
@@ -17,7 +17,7 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
     // TODO: none of this is very nice, differentiate unit families better
 
     // https://docs.rs/nom/latest/nom/branch/fn.alt.html
-    // println!("  parsing unit {}", input.clone());
+    println!("  parsing unit {}", input.clone());
     let (input, _) = tag("[")(input)?;
     // println!("  parsing unit {}", input.clone());
     let (input, unit_alias) = alt((
@@ -95,7 +95,7 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
 
 /// Switch on dimensions
 fn parse_dimension(input: &str) -> IResult<&str, Dimension> {
-    // println!("reached parse_dimension {}", input.clone());
+    println!("reached parse_dimension {}", input.clone());
     let (input, dimension) = parse_length(input)?;
     // let (input, dimension) = delimited(tag("["), alt((parse_length, parse_volume)), tag("]"))(input)?;
 
@@ -103,7 +103,7 @@ fn parse_dimension(input: &str) -> IResult<&str, Dimension> {
 }
 
 fn parse_number(number: &str) -> IResult<&str, AstNode> {
-    // println!("reached parse_number {}", number.clone());
+    println!("reached parse_number {}", number.clone());
     let (input, number) = double(number)?;
 
     let (input, dimension) = parse_dimension(input)?;
@@ -118,15 +118,21 @@ fn parse_number(number: &str) -> IResult<&str, AstNode> {
 }
 
 fn parse_vector(input: &str) -> IResult<&str, AstNode> {
-    // println!("reached parse_number {}", number.clone());
-    let (input, vector) =
-        delimited(tag("["), delimited(char(' '), double, char(',')), tag("]"))(input)?;
+    println!("reached parse_vector {}", input.clone());
+
+    println!("  reached vector bracket open {}", input.clone());
+    let (input, _) = tag("[")(input)?;
+    println!("  reached vector {}", input.clone());
+    let (input, vector) = many1(delimited(space0, double, space0))(input)?;
+    println!("  parsed vector {:#?}", vector.clone());
+    println!("  reached vector bracket close {}", input.clone());
+    let (input, _) = tag("]")(input)?;
 
     let (input, dimension) = parse_dimension(input)?;
 
     Ok((
         input,
-        AstNode::Double {
+        AstNode::Vector {
             value: vector,
             dimension: dimension,
         },
@@ -134,18 +140,19 @@ fn parse_vector(input: &str) -> IResult<&str, AstNode> {
 }
 
 fn parse_value(input: &str) -> IResult<&str, AstNode> {
+    println!("reached parse_value {}", input.clone());
     alt((parse_vector, parse_number))(input)
 }
 
 fn parse_name(name: &str) -> IResult<&str, AstNode> {
-    // println!("reached parse_name {}", name.clone());
+    println!("reached parse_name {}", name.clone());
     let (input, name) = alpha1(name)?;
 
     Ok((input, AstNode::Name(name.to_string())))
 }
 
 fn parse_operator(input: &str) -> IResult<&str, &str> {
-    // println!("reached parse_operator {}", input.clone());
+    println!("reached parse_operator {}", input.clone());
     Ok(alt((
         terminated(preceded(space0, tag("+")), space0),
         terminated(preceded(space0, tag("-")), space0),
@@ -156,7 +163,7 @@ fn parse_operator(input: &str) -> IResult<&str, &str> {
 }
 
 fn parse_expression(input: &str) -> IResult<&str, AstNode> {
-    // println!("reached parse_expression {}", input.clone());
+    println!("reached parse_expression {}", input.clone());
 
     let (input, _) = tag("(")(input)?;
     let (input, lhs) = alt((parse_value, parse_name, parse_expression))(input)?;
@@ -180,7 +187,7 @@ fn parse_expression(input: &str) -> IResult<&str, AstNode> {
 }
 
 fn parse_variable(input: &str) -> IResult<&str, AstNode> {
-    // println!("reached parse_variable {}", input.clone());
+    println!("reached parse_variable {}", input.clone());
     let (input, name) = parse_name(input)?;
     let (input, _) = tag(" = ")(input)?;
     let (input, expr) = terminated(alt((parse_value, parse_expression)), char(';'))(input)?;
@@ -195,7 +202,7 @@ fn parse_variable(input: &str) -> IResult<&str, AstNode> {
 }
 
 pub fn parse_line(input: &str) -> IResult<&str, Vec<AstNode>> {
-    // println!("reached parse_line {}", input.clone());
+    println!("reached parse_line {}", input.clone());
     many0(preceded(space0, parse_variable))(input)
 }
 

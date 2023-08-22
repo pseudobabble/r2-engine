@@ -97,7 +97,7 @@ impl Sub for Dimension {
                     },
                     power: 1,
                 },
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
             },
             2 => match rhs.power.clone() {
                 2 => Dimension {
@@ -107,7 +107,7 @@ impl Sub for Dimension {
                     },
                     power: 2,
                 },
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
             },
             3 => match rhs.power.clone() {
                 3 => Dimension {
@@ -117,7 +117,7 @@ impl Sub for Dimension {
                     },
                     power: 3,
                 },
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
             },
             _ => panic!("Unsupported dimension with power {}", self.power.clone()),
         }
