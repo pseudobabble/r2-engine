@@ -1,5 +1,7 @@
 use std::ops::{Add, Div, Mul, Sub};
 
+use ndarray::Array;
+
 // unit calculations with exponents here
 // add + sub can only work on same types
 // x/y converts to x * y^-1
@@ -200,13 +202,13 @@ impl Div for Dimension {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct DimensionedValue {
-    pub value: f64,
+pub struct DimensionedValue<T: Clone> {
+    pub value: T,
     pub dimension: Dimension,
 }
 
-impl Add for DimensionedValue {
-    type Output = DimensionedValue;
+impl Add for DimensionedValue<f64> {
+    type Output = DimensionedValue<f64>;
 
     fn add(self, rhs: Self) -> Self {
         println!(
@@ -230,8 +232,42 @@ impl Add for DimensionedValue {
     }
 }
 
-impl Sub for DimensionedValue {
-    type Output = DimensionedValue;
+impl Add for DimensionedValue<Vec<f64>> {
+    type Output = DimensionedValue<Vec<f64>>;
+
+    fn add(self, rhs: Self) -> Self {
+        println!(
+            "\n\nAdding {:#?}[{:#?}] to {:#?}[{:#?}]",
+            self.value.clone(),
+            self.dimension.clone(),
+            rhs.value.clone(),
+            rhs.dimension.clone(),
+        );
+
+        let dimension = self.dimension + rhs.dimension;
+
+        let lhs_value_in_base_units =
+            Array::from_vec(self.value) * self.dimension.unit.conversion_factor;
+        let rhs_value_in_base_units =
+            Array::from_vec(rhs.value) * rhs.dimension.unit.conversion_factor;
+
+        let value = lhs_value_in_base_units
+            .to_vec()
+            .iter()
+            .zip(rhs_value_in_base_units)
+            .map(|(left_x, right_x)| left_x + right_x)
+            .collect();
+        println!("\nResult = {:#?}[{:#?}]", value, dimension);
+
+        DimensionedValue {
+            value: value,
+            dimension: dimension,
+        }
+    }
+}
+
+impl Sub for DimensionedValue<f64> {
+    type Output = DimensionedValue<f64>;
 
     fn sub(self, rhs: Self) -> Self {
         println!(
@@ -255,8 +291,42 @@ impl Sub for DimensionedValue {
     }
 }
 
-impl Mul for DimensionedValue {
-    type Output = DimensionedValue;
+impl Sub for DimensionedValue<Vec<f64>> {
+    type Output = DimensionedValue<Vec<f64>>;
+
+    fn sub(self, rhs: Self) -> Self {
+        println!(
+            "\n\nSubtracting {:#?}[{:#?}] from {:#?}[{:#?}]",
+            rhs.value.clone(),
+            rhs.dimension.clone(),
+            self.value.clone(),
+            self.dimension.clone()
+        );
+
+        let dimension = self.dimension + rhs.dimension;
+
+        let lhs_value_in_base_units =
+            Array::from_vec(self.value) * self.dimension.unit.conversion_factor;
+        let rhs_value_in_base_units =
+            Array::from_vec(rhs.value) * rhs.dimension.unit.conversion_factor;
+
+        let value = lhs_value_in_base_units
+            .to_vec()
+            .iter()
+            .zip(rhs_value_in_base_units)
+            .map(|(left_x, right_x)| left_x - right_x)
+            .collect();
+        println!("\nResult = {:#?}[{:#?}]", value, dimension);
+
+        DimensionedValue {
+            value: value,
+            dimension: dimension,
+        }
+    }
+}
+
+impl Mul for DimensionedValue<f64> {
+    type Output = DimensionedValue<f64>;
 
     fn mul(self, rhs: Self) -> Self {
         println!(
@@ -280,8 +350,42 @@ impl Mul for DimensionedValue {
     }
 }
 
-impl Div for DimensionedValue {
-    type Output = DimensionedValue;
+impl Mul for DimensionedValue<Vec<f64>> {
+    type Output = DimensionedValue<Vec<f64>>;
+
+    fn mul(self, rhs: Self) -> Self {
+        println!(
+            "\n\nMultiplying {:#?}[{:#?}] with {:#?}[{:#?}]",
+            self.value.clone(),
+            self.dimension.clone(),
+            rhs.value.clone(),
+            rhs.dimension.clone(),
+        );
+
+        let dimension = self.dimension + rhs.dimension;
+
+        let lhs_value_in_base_units =
+            Array::from_vec(self.value) * self.dimension.unit.conversion_factor;
+        let rhs_value_in_base_units =
+            Array::from_vec(rhs.value) * rhs.dimension.unit.conversion_factor;
+
+        let value = lhs_value_in_base_units
+            .to_vec()
+            .iter()
+            .zip(rhs_value_in_base_units)
+            .map(|(left_x, right_x)| left_x * right_x)
+            .collect();
+        println!("\nResult = {:#?}[{:#?}]", value, dimension);
+
+        DimensionedValue {
+            value: value,
+            dimension: dimension,
+        }
+    }
+}
+
+impl Div for DimensionedValue<f64> {
+    type Output = DimensionedValue<f64>;
 
     fn div(self, rhs: Self) -> Self {
         println!(
@@ -305,11 +409,49 @@ impl Div for DimensionedValue {
     }
 }
 
+impl Div for DimensionedValue<Vec<f64>> {
+    type Output = DimensionedValue<Vec<f64>>;
+
+    fn div(self, rhs: Self) -> Self {
+        println!(
+            "\n\nDividing {:#?}[{:#?}] into {:#?}[{:#?}]",
+            self.value.clone(),
+            self.dimension.clone(),
+            rhs.value.clone(),
+            rhs.dimension.clone(),
+        );
+
+        let dimension = self.dimension + rhs.dimension;
+
+        let lhs_value_in_base_units =
+            Array::from_vec(self.value) * self.dimension.unit.conversion_factor;
+        let rhs_value_in_base_units =
+            Array::from_vec(rhs.value) * rhs.dimension.unit.conversion_factor;
+
+        let value = lhs_value_in_base_units
+            .to_vec()
+            .iter()
+            .zip(rhs_value_in_base_units)
+            .map(|(left_x, right_x)| left_x / right_x)
+            .collect();
+        println!("\nResult = {:#?}[{:#?}]", value, dimension);
+
+        DimensionedValue {
+            value: value,
+            dimension: dimension,
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum AstNode {
     Print(Box<AstNode>),
     Double {
         value: f64,
+        dimension: Dimension,
+    },
+    Vector {
+        value: Vec<f64>,
         dimension: Dimension,
     },
     Name(String),

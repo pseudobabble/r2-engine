@@ -1,24 +1,37 @@
 use super::types::*;
 
+use std::clone::Clone;
 use std::collections::HashMap;
+use std::fmt::Debug;
+use std::ops::*;
 
 #[derive(Debug, Clone)]
-pub struct Interpreter {
+pub struct Memory<T: Clone> {
     instructions: Vec<Vec<AstNode>>,
-    pub memory: HashMap<String, DimensionedValue>,
+    pub memory: HashMap<String, DimensionedValue<T>>,
 }
 
-// https://github.com/iliekturtles/uom/issues/391
+pub trait Interpreter<T: Clone> {
+    fn new(instructions: Vec<Vec<AstNode>>) -> Self;
+    fn run(&mut self) -> ();
+    fn evaluate(&self, expression: AstNode) -> DimensionedValue<T>;
+    fn evaluate_expression(
+        &self,
+        operation: BinaryOperation,
+        lhs: Box<AstNode>,
+        rhs: Box<AstNode>,
+    ) -> DimensionedValue<T>;
+}
 
-impl Interpreter {
-    pub fn new(instructions: Vec<Vec<AstNode>>) -> Interpreter {
-        Interpreter {
+impl Interpreter<f64> for Memory<f64> {
+    fn new(instructions: Vec<Vec<AstNode>>) -> Self {
+        Memory {
             instructions: instructions,
             memory: HashMap::new(),
         }
     }
 
-    pub fn run(&mut self) -> () {
+    fn run(&mut self) -> () {
         for line in &self.instructions {
             for variable in line {
                 println!("\nCalculating {:#?}", variable.clone());
@@ -45,10 +58,10 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&self, expression: AstNode) -> DimensionedValue {
+    fn evaluate(&self, expression: AstNode) -> DimensionedValue<f64> {
         let value = match expression {
             AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
+            AstNode::Double { value, dimension } => DimensionedValue::<f64> { value, dimension },
             AstNode::Expression {
                 operation,
                 lhs,
@@ -65,10 +78,10 @@ impl Interpreter {
         operation: BinaryOperation,
         lhs: Box<AstNode>,
         rhs: Box<AstNode>,
-    ) -> DimensionedValue {
+    ) -> DimensionedValue<f64> {
         let lhs_value = match *lhs {
             AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
+            AstNode::Double { value, dimension } => DimensionedValue::<f64> { value, dimension },
             AstNode::Expression {
                 operation,
                 lhs,
@@ -79,7 +92,7 @@ impl Interpreter {
 
         let rhs_value = match *rhs {
             AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
+            AstNode::Double { value, dimension } => DimensionedValue::<f64> { value, dimension },
             AstNode::Expression {
                 operation,
                 lhs,
@@ -99,7 +112,7 @@ impl Interpreter {
 
 #[test]
 fn test_interpreter() {
-    let i = Interpreter::new(vec![vec![AstNode::Variable {
+    let i = Interpreter::<f64>::new(vec![vec![AstNode::Variable {
         name: Box::new(AstNode::Name("var".to_string())),
         expr: Box::new(AstNode::Expression {
             operation: BinaryOperation::Divide,

@@ -6,7 +6,7 @@ pub mod interpreter;
 pub mod parser;
 pub mod types;
 
-use interpreter::Interpreter;
+use interpreter::{Interpreter, Memory};
 use parser::*;
 
 /// (average_wage_per_unit_calendar_time * (avoided_days_of_lost_due_to_anxiety + avoided_days_of_lost_due_to_depression))
@@ -45,7 +45,7 @@ fn main() -> () {
         program.push(parsed_line);
     }
 
-    let mut i = Interpreter::new(program.clone());
+    let mut i: Memory<f64> = Interpreter::new(program.clone());
 
     i.run();
 

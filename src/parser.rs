@@ -6,7 +6,7 @@ use nom::character::complete::digit1;
 use nom::character::complete::{alpha1, char, space0};
 use nom::multi::many0;
 use nom::number::complete::double;
-use nom::sequence::{preceded, terminated};
+use nom::sequence::{delimited, preceded, terminated};
 use nom::IResult;
 
 use super::types::*;
@@ -117,6 +117,26 @@ fn parse_number(number: &str) -> IResult<&str, AstNode> {
     ))
 }
 
+fn parse_vector(input: &str) -> IResult<&str, AstNode> {
+    // println!("reached parse_number {}", number.clone());
+    let (input, vector) =
+        delimited(tag("["), delimited(char(' '), double, char(',')), tag("]"))(input)?;
+
+    let (input, dimension) = parse_dimension(input)?;
+
+    Ok((
+        input,
+        AstNode::Double {
+            value: vector,
+            dimension: dimension,
+        },
+    ))
+}
+
+fn parse_value(input: &str) -> IResult<&str, AstNode> {
+    alt((parse_vector, parse_number))(input)
+}
+
 fn parse_name(name: &str) -> IResult<&str, AstNode> {
     // println!("reached parse_name {}", name.clone());
     let (input, name) = alpha1(name)?;
@@ -139,9 +159,9 @@ fn parse_expression(input: &str) -> IResult<&str, AstNode> {
     // println!("reached parse_expression {}", input.clone());
 
     let (input, _) = tag("(")(input)?;
-    let (input, lhs) = alt((parse_number, parse_name, parse_expression))(input)?;
+    let (input, lhs) = alt((parse_value, parse_name, parse_expression))(input)?;
     let (input, operator) = parse_operator(input)?;
-    let (input, rhs) = alt((parse_expression, parse_name, parse_number))(input)?;
+    let (input, rhs) = alt((parse_expression, parse_name, parse_value))(input)?;
     let (input, _) = tag(")")(input)?;
     Ok((
         input,
@@ -163,7 +183,7 @@ fn parse_variable(input: &str) -> IResult<&str, AstNode> {
     // println!("reached parse_variable {}", input.clone());
     let (input, name) = parse_name(input)?;
     let (input, _) = tag(" = ")(input)?;
-    let (input, expr) = terminated(alt((parse_number, parse_expression)), char(';'))(input)?;
+    let (input, expr) = terminated(alt((parse_value, parse_expression)), char(';'))(input)?;
 
     Ok((
         input,
