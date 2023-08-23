@@ -45,16 +45,19 @@ a = 1[km];
 b = (2[m] * 2[km]);
 c = (a + b);
 #+end_src
-*** TODO Vectorise calculations
+*** DONE Vectorise calculations
+CLOSED: [2023-08-23 Wed 09:49]
 #+begin_src
 a = [1, 2, 3, 4, 5][km];
 b = ([4, 6, 32, 7, 9][m] * [25, 2, 2, 1, 5][km]);
 c = (a + b);
 #+end_src
 - [X] vector support
-- [ ] parse and support scalars & vectors together
-  - [ ] parse scalars as single element lists
-  - [ ] extend single element lists to length of other list
+- [-] parse and support scalars & vectors together
+  - [X] parse scalars as single element lists
+  - [X] extend single element lists to length of other list
+*** TODO Add dimensionless values
+  - [ ] parse dimensionless values (scalars/scalar vecs without units) as values with power 0 and units None
 
 #+begin_quote
 Generic =DimensionedValue= with different =Mul + Add + ..= implementations

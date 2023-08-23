@@ -246,10 +246,41 @@ impl Add for DimensionedValue<Vec<f64>> {
 
         let dimension = self.dimension + rhs.dimension;
 
+        // if either vector is length 1, extend it to the length of the other vector
+        // otherwise panic on differing lengths
+        // this is to treat single element vectors as scalars for calculation
+
+        let lhs_value = match self.value.len() {
+            0 => panic!("Found vector of length 0 on LHS: {:#?}", self),
+            1 => match rhs.value.len() {
+                0 => panic!("Found vector of length 0 on RHS: {:#?}", rhs),
+                1 => self.value.clone(),
+                _ => vec![self.value[0].clone(); rhs.value.len()],
+            },
+            _ => self.value.clone(),
+        };
+
+        let rhs_value = match rhs.value.len() {
+            0 => panic!("Found vector of length 0 on RHS: {:#?}", rhs),
+            1 => match self.value.len() {
+                0 => panic!("Found vector of length 0 on LHS: {:#?}", self),
+                1 => rhs.value.clone(),
+                _ => vec![rhs.value[0].clone(); self.value.len()],
+            },
+            _ => self.value.clone(),
+        };
+
+        if lhs_value.len() != rhs_value.len() {
+            panic!(
+                "Vectors must be of same length, found LHS: {:#?} and RHS: {:#?}",
+                lhs_value, rhs_value
+            );
+        }
+
         let lhs_value_in_base_units =
-            Array::from_vec(self.value) * self.dimension.unit.conversion_factor;
+            Array::from_vec(lhs_value) * self.dimension.unit.conversion_factor;
         let rhs_value_in_base_units =
-            Array::from_vec(rhs.value) * rhs.dimension.unit.conversion_factor;
+            Array::from_vec(rhs_value) * rhs.dimension.unit.conversion_factor;
 
         let value = lhs_value_in_base_units
             .to_vec()
