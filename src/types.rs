@@ -36,6 +36,30 @@ pub struct Unit {
     pub conversion_factor: f64,
 }
 
+impl Mul for Unit {
+    type Output = Unit;
+
+    /// 1[m^1] * 1[m^2] = 1[m^3]
+    /// a^1 * a^2 = a^3
+    fn mul(self, rhs: Self) -> Self {
+        match self {
+            UnitIdentity::Meter => match rhs {
+                UnitIdentity::Meter => UnitIdentity::SquareMeter,
+                UnitIdentity::SquareMeter => UnitIdentity::CubicMeter,
+                _ => panic!("Cannot add {} to {}", self, rhs),
+            },
+            UnitIdentity::SquareMeter => match rhs {
+                UnitIdentity::SquareMeter => UnitIdentity::SquareMeter,
+                _ => panic!("Cannot add {} to {}", self, rhs),
+            },
+            UnitIdentity::CubicMeter => match rhs {
+                UnitIdentity::SquareMeter => UnitIdentity::CubicMeter,
+                _ => panic!("Cannot add {} to {}", self, rhs),
+            },
+        }
+    }
+}
+
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Dimension {
     pub unit: Unit,
@@ -142,6 +166,22 @@ impl Mul for Dimension {
     /// a^1 * a^2 = a^3
     fn mul(self, rhs: Self) -> Self {
         let result_power = self.power + rhs.power;
+
+        // this can go on impl Mul for Unit so we can just say derived_unit = self.unit * rhs.unit
+        let derived_unit = match self.unit.unit.clone() {
+            UnitIdentity::Meter => match rhs.unit.unit.clone() {
+                UnitIdentity::Meter => UnitIdentity::SquareMeter,
+                _ => panic!("Cannot add {} to {}", self.unit.unit, rhs.unit.unit),
+            },
+            UnitIdentity::SquareMeter => match rhs.unit.unit.clone() {
+                UnitIdentity::SquareMeter => UnitIdentity::SquareMeter,
+                _ => panic!("Cannot add {} to {}", self.unit.unit, rhs.unit.unit),
+            },
+            UnitIdentity::CubicMeter => match rhs.unit.unit.clone() {
+                UnitIdentity::SquareMeter => UnitIdentity::CubicMeter,
+                _ => panic!("Cannot add {} to {}", self.unit.unit, rhs.unit.unit),
+            },
+        }
 
         match result_power {
             1 => Dimension {

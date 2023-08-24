@@ -69,6 +69,7 @@ unit families?
 eg currency / time.. it remains unresolved in the equation, we need to represent these
 or are these just dimensions?
 when the unit family is different + and - make no sense but * and / do, you get currency / time for example
+think about
 *** TODO Parse csvs with declared var names as column headings
 #+begin_src
 a = csv{height_of_side[km]};
