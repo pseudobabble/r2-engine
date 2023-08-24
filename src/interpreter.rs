@@ -5,24 +5,24 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
-pub struct Memory<T: Clone> {
+pub struct Memory {
     instructions: Vec<Vec<AstNode>>,
-    pub memory: HashMap<String, DimensionedValue<T>>,
+    pub memory: HashMap<String, DimensionedValue>, // TODO maybe DimensionedValue { unit, power, value }
 }
 
-pub trait Interpreter<T: Clone> {
+pub trait Interpreter {
     fn new(instructions: Vec<Vec<AstNode>>) -> Self;
     fn run(&mut self) -> ();
-    fn evaluate(&self, expression: AstNode) -> DimensionedValue<T>;
+    fn evaluate(&self, expression: AstNode) -> DimensionedValue;
     fn evaluate_expression(
         &self,
         operation: BinaryOperation,
         lhs: Box<AstNode>,
         rhs: Box<AstNode>,
-    ) -> DimensionedValue<T>;
+    ) -> DimensionedValue;
 }
 
-impl Interpreter<f64> for Memory<f64> {
+impl Interpreter for Memory {
     fn new(instructions: Vec<Vec<AstNode>>) -> Self {
         Memory {
             instructions: instructions,
@@ -50,26 +50,35 @@ impl Interpreter<f64> for Memory<f64> {
                     _ => panic!("Variable should be of type AstNode::Variable"),
                 };
 
-                println!("\nStoring result {:#?}", dimensioned_value.clone());
+                println!(
+                    "\nStoring result {:#?} = {:#?}",
+                    name.clone(),
+                    dimensioned_value.clone()
+                );
                 self.memory.insert(name, dimensioned_value);
                 println!("=================================\n\n");
             }
         }
     }
 
-    fn evaluate(&self, expression: AstNode) -> DimensionedValue<f64> {
-        let value = match expression {
-            AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue::<f64> { value, dimension },
+    fn evaluate(&self, expression: AstNode) -> DimensionedValue {
+        match expression {
+            AstNode::Name(name) => self.memory[&name].clone(),
+            AstNode::Double { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
+            AstNode::Vector { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
             AstNode::Expression {
                 operation,
                 lhs,
                 rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
-        };
-
-        value
+            _ => panic!("1 Expression should be of type AstNode::Expression, AstNode::Double, AstNode::Vector, or AstNode::Name, found: {:#?}", expression),
+        }
     }
 
     fn evaluate_expression(
@@ -77,120 +86,41 @@ impl Interpreter<f64> for Memory<f64> {
         operation: BinaryOperation,
         lhs: Box<AstNode>,
         rhs: Box<AstNode>,
-    ) -> DimensionedValue<f64> {
-        let lhs_value = match *lhs {
-            AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue::<f64> { value, dimension },
-            AstNode::Expression {
-                operation,
-                lhs,
-                rhs,
-            } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
-        };
-
-        let rhs_value = match *rhs {
-            AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue::<f64> { value, dimension },
-            AstNode::Expression {
-                operation,
-                lhs,
-                rhs,
-            } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double",),
-        };
-
-        match operation {
-            BinaryOperation::Add => lhs_value + rhs_value,
-            BinaryOperation::Subtract => lhs_value - rhs_value,
-            BinaryOperation::Multiply => lhs_value * rhs_value,
-            BinaryOperation::Divide => lhs_value / rhs_value,
-        }
-    }
-}
-
-impl Interpreter<Vec<f64>> for Memory<Vec<f64>> {
-    fn new(instructions: Vec<Vec<AstNode>>) -> Self {
-        Memory {
-            instructions: instructions,
-            memory: HashMap::new(),
-        }
-    }
-
-    fn run(&mut self) -> () {
-        for line in &self.instructions {
-            for variable in line {
-                println!("\nCalculating {:#?}", variable.clone());
-                let name = match variable {
-                    AstNode::Variable { name, expr: _expr } => match *name.clone() {
-                        AstNode::Name(name) => name,
-                        _ => panic!("Variable name should be of type AstNode::Name"),
-                    },
-                    _ => panic!("Variable should be of type AstNode::Variable"),
-                };
-
-                let dimensioned_value = match variable {
-                    AstNode::Variable {
-                        name: _name,
-                        expr: expression,
-                    } => self.evaluate(*expression.clone()),
-                    _ => panic!("Variable should be of type AstNode::Variable"),
-                };
-
-                println!("\nStoring result {:#?}", dimensioned_value.clone());
-                self.memory.insert(name, dimensioned_value);
-                println!("=================================\n\n");
-            }
-        }
-    }
-
-    fn evaluate(&self, expression: AstNode) -> DimensionedValue<Vec<f64>> {
-        let value = match expression {
-            AstNode::Name(name) => self.memory[&name].clone(),
-            AstNode::Vector { value, dimension } => {
-                DimensionedValue::<Vec<f64>> { value, dimension }
-            }
-            AstNode::Expression {
-                operation,
-                lhs,
-                rhs,
-            } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
-        };
-
-        value
-    }
-
-    fn evaluate_expression(
-        &self,
-        operation: BinaryOperation,
-        lhs: Box<AstNode>,
-        rhs: Box<AstNode>,
-    ) -> DimensionedValue<Vec<f64>> {
+    ) -> DimensionedValue {
         let lhs_value = match *lhs {
             AstNode::Name(name) => self.memory[&name].clone(),
-            AstNode::Vector { value, dimension } => {
-                DimensionedValue::<Vec<f64>> { value, dimension }
-            }
+            AstNode::Double { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
+            AstNode::Vector { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
             AstNode::Expression {
                 operation,
                 lhs,
                 rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
+            _ => panic!("2 Expression should be of type AstNode::Expression, AstNode::Double, AstNode::Vector, or AstNode::Name, found: {:#?}", lhs),
         };
 
         let rhs_value = match *rhs {
             AstNode::Name(name) => self.memory[&name].clone(),
-            AstNode::Vector { value, dimension } => {
-                DimensionedValue::<Vec<f64>> { value, dimension }
-            }
+            AstNode::Double { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
+            AstNode::Vector { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
             AstNode::Expression {
                 operation,
                 lhs,
                 rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double",),
+            _ => panic!("3 Expression should be of type AstNode::Expression, AstNode::Double, AstNode::Vector, or AstNode::Name, found: {:#?}", rhs),
         };
 
         match operation {
@@ -204,18 +134,28 @@ impl Interpreter<Vec<f64>> for Memory<Vec<f64>> {
 
 #[test]
 fn test_interpreter() {
-    let i = Interpreter::<f64>::new(vec![vec![AstNode::Variable {
+    let i: Memory = Interpreter::new(vec![vec![AstNode::Variable {
         name: Box::new(AstNode::Name("var".to_string())),
         expr: Box::new(AstNode::Expression {
             operation: BinaryOperation::Divide,
             lhs: Box::new(AstNode::Double {
-                value: 2.0,
-                dimension: Dimension::Length { unit: Unit::Meter },
+                value: Value::Float(2.0),
+                dimension: Dimension::Length {
+                    unit: Unit {
+                        unit: UnitIdentity::Meter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 1,
+                },
             }),
             rhs: Box::new(AstNode::Double {
-                value: 2.0,
+                value: Value::Float(2.0),
                 dimension: Dimension::Length {
-                    unit: Unit::Kilometer,
+                    unit: Unit {
+                        unit: UnitIdentity::Kilometer,
+                        conversion_factor: 1000.0,
+                    },
+                    power: 1,
                 },
             }),
         }),

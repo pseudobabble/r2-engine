@@ -45,7 +45,7 @@ fn main() -> () {
         program.push(parsed_line);
     }
 
-    let mut i: Memory<Vec<f64>> = Interpreter::new(program.clone());
+    let mut i: Memory = Interpreter::new(program.clone());
 
     i.run();
 
