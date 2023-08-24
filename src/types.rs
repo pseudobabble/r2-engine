@@ -113,14 +113,27 @@ impl Mul for Quantity {
     /// 1[m^1] * 1[m^2] = 1[m^3]
     /// a^1 * a^2 = a^3
     /// multiplying a unit returns
+    /// like avaluate
+    ///
+    /// I think this will work
     fn mul(self, rhs: Self) -> Self {
         let lhs_derived = match self {
-            Time(time) => Time(time + rhs.power),
-            Length(length) => Length(time + rhs.power),
-            Volume(i64) => Volume(time + rhs.power),
-            Currency(i64) => Currency(time + rhs.power),
-            Quantity::CompoundQuantity {}  => CompoundQuantity(time + rhs.power),
+            Time(time) => Time(time),
+            Length(length) => Length(time),
+            Volume(i64) => Volume(time),
+            Currency(i64) => Currency(time),
+            Quantity::CompoundQuantity {lhs, rhs, ..} => lhs binop rhs,
         }
+
+        let rhs_derived = match self {
+            Time(time) => Time(time),
+            Length(length) => Length(time),
+            Volume(volume) => Volume(time),
+            Currency(volume) => Currency(time),
+            Quantity::CompoundQuantity {lhs, rhs, ..} => lhs * rhs,
+        }
+
+        lhs_derived * rhs_derived
     }
 }
 
