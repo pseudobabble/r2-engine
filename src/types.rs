@@ -25,99 +25,34 @@ pub enum BinaryOperation {
 //
 // build one of these while evaluating, and the last var gets it
 // if we need the power to make sense of the calculation, do this in Mul for Dimension
+/// f64 is the power of the unit
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy)]
 pub enum UnitIdentity {
-    None {
-        conversion_factor: 1.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
+    CompoundUnit {
+        operation: BinaryOperation,
+        lhs: Box<UnitIdentity>,
+        rhs: Box<UnitIdentity>,
     },
-    // Time
-    Second {
-        conversion_factor: 1.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    Minute {
-        conversion_factor: 60.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    Hour {
-        conversion_factor: 3600.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    Day {
-        conversion_factor: 86400.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    // Length
-    Meter {
-        conversion_factor: 1.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    Kilometer {
-        conversion_factor: 1000.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    //Area
-    SquareMeter {
-        conversion_factor: 1.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    SquareKilometer {
-        conversion_factor: 1000000.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    // Volume
-    CubicMeter {
-        conversion_factor: 1.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    CubicKilometer {
-        conversion_factor: 1000000000.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    // Currency
-    USD {
-        conversion_factor: 1.0,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
-    GBP {
-        conversion_factor: 1.2,
-        operation: Option<BinaryOperation>,
-        rhs: Option<Box<UnitIdentity>>,
-    },
+    None(f64),
+    Second(f64)
+    Minute(f64),
+    Hour(f64),
+    Day(f64),
+    Meter(f64),
+    Kilometer(f64),
+    SquareMeter(f64),
+    SquareKilometer(f64),
+    CubicMeter(f64),
+    CubicKilometer(f64),
+    USD(f64),
+    GBP(f64),
 }
 
 impl Add for UnitIdentity {
     fn add(self, rhs: Self) -> Self {
         match self {
-            UnitIdentity::None => match rhs {
-                UnitIdentity::None => UnitIdentity::None,
-                _ => UnitIdentity::None(
-                    conversion_factor: self.conversion_factor,
-                    operation: BinaryOperation::Add,
-                    rhs: rhs
-                )
-            },
-            UnitIdentity::Second => match rhs {
-                UnitIdentity::Second => UnitIdentity::None,
-                _ => UnitIdentity::None(
-                    conversion_factor: self.conversion_factor,
-                    operation: BinaryOperation::Add,
-                    rhs: rhs
-                )
-            },
+            UnitIdentity::None => match
+            UnitIdentity::Second =>
             UnitIdentity::Minute => match rhs {},
             UnitIdentity::Hour => match rhs {},
             UnitIdentity::Day => match rhs {},
@@ -137,26 +72,15 @@ impl Div for Quantity {}
 
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy)]
 pub enum Quantity {
-    Time {
-        power: i64,
-        operation: Option<BinaryOperation>,
-        quantity: Option<Box<Quantity>>,
-    },
-    Length {
-        power: i64,
-        operation: Option<BinaryOperation>,
-        quantity: Option<Box<Quantity>>,
-    },
-    Volume {
-        power: i64,
-        operation: Option<BinaryOperation>,
-        quantity: Option<Box<Quantity>>,
-    },
-    Currency {
-        power: i64,
-        operation: Option<BinaryOperation>,
-        quantity: Option<Box<Quantity>>,
-    },
+    CompoundQuantity {
+        operation: BinaryOperation,
+        lhs: Box<Quantity>,
+        rhs: Box<Quantity>,
+    }
+    Time(i64)
+    Length(i64),
+    Volume(i64),
+    Currency(i64),
 }
 
 impl Add for Quantity {
@@ -190,67 +114,12 @@ impl Mul for Quantity {
     /// a^1 * a^2 = a^3
     /// multiplying a unit returns
     fn mul(self, rhs: Self) -> Self {
-        match self {
-            Quantity::Time { power, operation, quantity } => match rhs {
-                Quantity::Time { power, operation, quantity } => Time {
-                    power: self.power + rhs.power,
-                    operation: None,
-                    quantity:
-                },
-                _ => Quantity::Time {
-                    power: self.power,
-                    operation: BinaryOperation::Multiply,
-                    quantity: rhs
-                }
-            },
-            Quantity::Length { power, operation, quantity } => match rhs {
-                Quantity::Length { power, operation, quantity } => Length {
-                    power: self.power + rhs.power,
-                    operation: None,
-                    quantity: None
-                },
-                _ => Quantity::Length {
-                    power: self.power,
-                    operation: BinaryOperation::Multiply,
-                    quantity: rhs
-                }
-            },
-            Quantity::Area { power, operation, quantity } => match rhs {
-                Quantity::Area { power, operation, quantity } => Area {
-                    power: self.power + rhs.power,
-                    operation: None,
-                    quantity: None
-                },
-                _ => Quantity::Area {
-                    power: self.power,
-                    operation: BinaryOperation::Multiply,
-                    quantity: rhs
-                }
-            },
-            Quantity::Volume { power, operation, quantity } => match rhs {
-                Quantity::Volume { power, operation, quantity } => Volume {
-                    power: self.power + rhs.power,
-                    operation: None,
-                    quantity: None
-                },
-                _ => Quantity::Volume {
-                    power: self.power,
-                    operation: BinaryOperation::Multiply,
-                    quantity: rhs
-                }
-            },
-            Quantity::Currency { power, operation, quantity } => match rhs {
-                Quantity::Currency { power, operation, quantity } => Currency {
-                    power: self.power + rhs.power,
-                    operation: None,
-                    quantity: None
-                },
-                _ => Quantity::Currency {
-                    power: self.power,
-                    operation: BinaryOperation::Multiply,
-                    quantity: rhs
-                }
-            },
+        let lhs_derived = match self {
+            Time(time) => Time(time + rhs.power),
+            Length(length) => Length(time + rhs.power),
+            Volume(i64) => Volume(time + rhs.power),
+            Currency(i64) => Currency(time + rhs.power),
+            Quantity::CompoundQuantity {}  => CompoundQuantity(time + rhs.power),
         }
     }
 }
@@ -329,6 +198,8 @@ impl Div for Quantity {
     }
 }
 
+/// unit contains conversion factor
+/// quantity contains power
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Unit {
     pub unit: UnitIdentity,
