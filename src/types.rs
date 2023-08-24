@@ -15,25 +15,364 @@ pub enum BinaryOperation {
     Divide,
 }
 
+// meter/second
+// UnitIdentity::Meter(
+//    Some(BinaryOperation::Divide),
+//    Some(Unit { unit: UnitIdentity::Second(None, None), conversion_factor: 1.0 })
+// )
+// just meter
+// UnitIdentity::Meter(None, None)
+//
+// build one of these while evaluating, and the last var gets it
+// if we need the power to make sense of the calculation, do this in Mul for Dimension
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy)]
 pub enum UnitIdentity {
-    None,
-    Second,
-    Minute,
-    Hour,
-    Day,
-    Meter,
-    Kilometer,
-    SquareMeter,
-    SquareKilometer,
-    CubicMeter,
-    CubicKilometer,
+    None {
+        conversion_factor: 1.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    // Time
+    Second {
+        conversion_factor: 1.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    Minute {
+        conversion_factor: 60.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    Hour {
+        conversion_factor: 3600.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    Day {
+        conversion_factor: 86400.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    // Length
+    Meter {
+        conversion_factor: 1.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    Kilometer {
+        conversion_factor: 1000.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    //Area
+    SquareMeter {
+        conversion_factor: 1.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    SquareKilometer {
+        conversion_factor: 1000000.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    // Volume
+    CubicMeter {
+        conversion_factor: 1.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    CubicKilometer {
+        conversion_factor: 1000000000.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    // Currency
+    USD {
+        conversion_factor: 1.0,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+    GBP {
+        conversion_factor: 1.2,
+        operation: Option<BinaryOperation>,
+        rhs: Option<Box<UnitIdentity>>,
+    },
+}
+
+impl Add for UnitIdentity {
+    fn add(self, rhs: Self) -> Self {
+        match self {
+            UnitIdentity::None => match rhs {
+                UnitIdentity::None => UnitIdentity::None,
+                _ => UnitIdentity::None(
+                    conversion_factor: self.conversion_factor,
+                    operation: BinaryOperation::Add,
+                    rhs: rhs
+                )
+            },
+            UnitIdentity::Second => match rhs {
+                UnitIdentity::Second => UnitIdentity::None,
+                _ => UnitIdentity::None(
+                    conversion_factor: self.conversion_factor,
+                    operation: BinaryOperation::Add,
+                    rhs: rhs
+                )
+            },
+            UnitIdentity::Minute => match rhs {},
+            UnitIdentity::Hour => match rhs {},
+            UnitIdentity::Day => match rhs {},
+            UnitIdentity::Meter => match rhs {},
+            UnitIdentity::Kilometer => match rhs {},
+            UnitIdentity::MeterSquared => match rhs {},
+            UnitIdentity::KilometerSquared => match rhs {},
+            UnitIdentity::CubicMeter => match rhs {},
+            UnitIdentity::CubicKilometer => match rhs {},
+            UnitIdentity::USD => match rhs {},
+            UnitIdentity::GBP => match rhs {},
+    }
+}
+impl Sub for Quantity {}
+impl Mul for Quantity {}
+impl Div for Quantity {}
+
+#[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy)]
+pub enum Quantity {
+    Time {
+        power: i64,
+        operation: Option<BinaryOperation>,
+        quantity: Option<Box<Quantity>>,
+    },
+    Length {
+        power: i64,
+        operation: Option<BinaryOperation>,
+        quantity: Option<Box<Quantity>>,
+    },
+    Volume {
+        power: i64,
+        operation: Option<BinaryOperation>,
+        quantity: Option<Box<Quantity>>,
+    },
+    Currency {
+        power: i64,
+        operation: Option<BinaryOperation>,
+        quantity: Option<Box<Quantity>>,
+    },
+}
+
+impl Add for Quantity {
+    type Output = Unit;
+
+    /// we can only add when the units are identical
+    /// and the addition returns the same unit:
+    /// 1[m^1] + 1[m^1] == 2[m^1]
+    /// 1[m^1] + 1[m^2] -> invalid!
+    fn add(self, rhs: Self) -> Self {
+        self
+    }
+}
+
+impl Sub for Quantity {
+    type Output = Unit;
+
+    /// we can only subtract when the units are identical
+    /// and the subtraction returns the same unit:
+    /// 1[m^1] - 1[m^1] == 0[m^1]
+    /// 1[m^1] - 1[m^2] -> invalid!
+    fn sub(self, rhs: Self) -> Self {
+        self
+    }
+}
+
+impl Mul for Quantity {
+    type Output = Quantity;
+
+    /// 1[m^1] * 1[m^2] = 1[m^3]
+    /// a^1 * a^2 = a^3
+    /// multiplying a unit returns
+    fn mul(self, rhs: Self) -> Self {
+        match self {
+            Quantity::Time { power, operation, quantity } => match rhs {
+                Quantity::Time { power, operation, quantity } => Time {
+                    power: self.power + rhs.power,
+                    operation: None,
+                    quantity:
+                },
+                _ => Quantity::Time {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+            Quantity::Length { power, operation, quantity } => match rhs {
+                Quantity::Length { power, operation, quantity } => Length {
+                    power: self.power + rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                _ => Quantity::Length {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+            Quantity::Area { power, operation, quantity } => match rhs {
+                Quantity::Area { power, operation, quantity } => Area {
+                    power: self.power + rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                _ => Quantity::Area {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+            Quantity::Volume { power, operation, quantity } => match rhs {
+                Quantity::Volume { power, operation, quantity } => Volume {
+                    power: self.power + rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                _ => Quantity::Volume {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+            Quantity::Currency { power, operation, quantity } => match rhs {
+                Quantity::Currency { power, operation, quantity } => Currency {
+                    power: self.power + rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                _ => Quantity::Currency {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+        }
+    }
+}
+
+impl Div for Quantity {
+    type Output = Quantity;
+
+    /// 1[m^1] * 1[m^2] = 1[m^3]
+    /// a^1 * a^2 = a^3
+    fn div(self, rhs: Self) -> Self {
+        match self {
+            // if we are Time
+            Quantity::Time { power, operation, quantity } => match rhs {
+                // and they are Time, then subtract the powers and return a Time
+                Quantity::Time { power, operation, quantity } => Time {
+                    power: power - rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                // Otherwise, compound with RHS
+                _ => Quantity::Time {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+            Quantity::Length { power, operation, quantity } => match rhs {
+                Quantity::Length { power, operation, quantity } => Length {
+                    power: power - rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                _ => Quantity::Length {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+            Quantity::Area { power, operation, quantity } => match rhs {
+                Quantity::Area { power, operation, quantity } => Area {
+                    power: power - rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                _ => Quantity::Area {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+            Quantity::Volume { power, operation, quantity } => match rhs {
+                Quantity::Volume { power, operation, quantity } => Volume {
+                    power: power - rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                _ => Quantity::Volume {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+            Quantity::Currency { power, operation, quantity } => match rhs {
+                Quantity::Currency { power, operation, quantity } => Currency {
+                    power: power - rhs.power,
+                    operation: None,
+                    quantity: None
+                },
+                _ => Quantity::Currency {
+                    power: self.power,
+                    operation: BinaryOperation::Multiply,
+                    quantity: rhs
+                }
+            },
+        }
+    }
 }
 
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct Unit {
     pub unit: UnitIdentity,
-    pub conversion_factor: f64,
+    pub quantity: Quantity,
+}
+
+impl Add for Unit {
+    type Output = Unit;
+
+    fn add(self, rhs: Self) -> Self {
+        // if same quantity and same power, fine, otherwise panic
+        if self.quantity.clone() == rhs.quantity.clone() {
+            if self.power.clone() == rhs.power.clone() {
+                Unit {
+                    unit: self.unit,
+                    quantity: self.quantity,
+                }
+            } else {
+                panic!("Cannot add {:#?} with {:#?}", self, rhs)
+            }
+        } else {
+            panic!("Cannot add {:#?} with {:#?}", self, rhs)
+        }
+    }
+}
+
+impl Sub for Unit {
+    type Output = Unit;
+
+    fn add(self, rhs: Self) -> Self {
+        // if same quantity and same power, fine, otherwise panic
+        if self.quantity.clone() == rhs.quantity.clone() {
+            if self.power.clone() == rhs.power.clone() {
+                Unit {
+                    unit: self.unit,
+                    quantity: self.quantity,
+                }
+            } else {
+                panic!("Cannot add {:#?} with {:#?}", self, rhs)
+            }
+        } else {
+            panic!("Cannot add {:#?} with {:#?}", self, rhs)
+        }
+    }
 }
 
 impl Mul for Unit {
@@ -42,212 +381,24 @@ impl Mul for Unit {
     /// 1[m^1] * 1[m^2] = 1[m^3]
     /// a^1 * a^2 = a^3
     fn mul(self, rhs: Self) -> Self {
-        match self {
-            UnitIdentity::Meter => match rhs {
-                UnitIdentity::Meter => UnitIdentity::SquareMeter,
-                UnitIdentity::SquareMeter => UnitIdentity::CubicMeter,
-                _ => panic!("Cannot add {} to {}", self, rhs),
-            },
-            UnitIdentity::SquareMeter => match rhs {
-                UnitIdentity::SquareMeter => UnitIdentity::SquareMeter,
-                _ => panic!("Cannot add {} to {}", self, rhs),
-            },
-            UnitIdentity::CubicMeter => match rhs {
-                UnitIdentity::SquareMeter => UnitIdentity::CubicMeter,
-                _ => panic!("Cannot add {} to {}", self, rhs),
-            },
+        Unit {
+            unit: self.unit * rhs.unit,
+            quantity: self.quantity * rhs.quantity,
         }
     }
 }
 
-#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
-pub struct Dimension {
-    pub unit: Unit,
-    pub power: i64,
-}
-
-impl Add for Dimension {
-    type Output = Dimension;
-
-    fn add(self, rhs: Self) -> Self {
-        // if LHS is Length (unit^1)
-        match self.power.clone() {
-            // and RHS is Length (unit^1)
-            1 => match rhs.power.clone() {
-                // return Length in base units
-                1 => Dimension {
-                    unit: Unit {
-                        unit: UnitIdentity::Meter,
-                        conversion_factor: 1.0,
-                    },
-                    power: 1,
-                },
-                // Cannot add Length to eg, Area
-                _ => panic!(
-                    "Cannot add dimensions with different powers: {:#?} to {:#?}",
-                    self, rhs
-                ),
-            },
-            2 => match rhs.power.clone() {
-                2 => Dimension {
-                    unit: Unit {
-                        unit: UnitIdentity::SquareMeter,
-                        conversion_factor: 1.0,
-                    },
-                    power: 2,
-                },
-                _ => panic!(
-                    "Cannot add dimensions with different powers: {:#?} to {:#?}",
-                    self, rhs
-                ),
-            },
-            3 => match rhs.power.clone() {
-                3 => Dimension {
-                    unit: Unit {
-                        unit: UnitIdentity::CubicMeter,
-                        conversion_factor: 1.0,
-                    },
-                    power: 2,
-                },
-                _ => panic!(
-                    "Cannot add dimensions with different powers: {:#?} to {:#?}",
-                    self, rhs
-                ),
-            },
-            _ => panic!("Unsupported dimension with power {}", self.power.clone()),
-        }
-    }
-}
-
-impl Sub for Dimension {
-    type Output = Dimension;
-
-    fn sub(self, rhs: Self) -> Self {
-        match self.power.clone() {
-            1 => match rhs.power.clone() {
-                1 => Dimension {
-                    unit: Unit {
-                        unit: UnitIdentity::Meter,
-                        conversion_factor: 1.0,
-                    },
-                    power: 1,
-                },
-                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
-            },
-            2 => match rhs.power.clone() {
-                2 => Dimension {
-                    unit: Unit {
-                        unit: UnitIdentity::SquareMeter,
-                        conversion_factor: 1.0,
-                    },
-                    power: 2,
-                },
-                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
-            },
-            3 => match rhs.power.clone() {
-                3 => Dimension {
-                    unit: Unit {
-                        unit: UnitIdentity::CubicMeter,
-                        conversion_factor: 1.0,
-                    },
-                    power: 3,
-                },
-                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
-            },
-            _ => panic!("Unsupported dimension with power {}", self.power.clone()),
-        }
-    }
-}
-
-impl Mul for Dimension {
-    type Output = Dimension;
-
-    /// 1[m^1] * 1[m^2] = 1[m^3]
-    /// a^1 * a^2 = a^3
-    fn mul(self, rhs: Self) -> Self {
-        let result_power = self.power + rhs.power;
-
-        // this can go on impl Mul for Unit so we can just say derived_unit = self.unit * rhs.unit
-        let derived_unit = match self.unit.unit.clone() {
-            UnitIdentity::Meter => match rhs.unit.unit.clone() {
-                UnitIdentity::Meter => UnitIdentity::SquareMeter,
-                _ => panic!("Cannot add {} to {}", self.unit.unit, rhs.unit.unit),
-            },
-            UnitIdentity::SquareMeter => match rhs.unit.unit.clone() {
-                UnitIdentity::SquareMeter => UnitIdentity::SquareMeter,
-                _ => panic!("Cannot add {} to {}", self.unit.unit, rhs.unit.unit),
-            },
-            UnitIdentity::CubicMeter => match rhs.unit.unit.clone() {
-                UnitIdentity::SquareMeter => UnitIdentity::CubicMeter,
-                _ => panic!("Cannot add {} to {}", self.unit.unit, rhs.unit.unit),
-            },
-        }
-
-        match result_power {
-            1 => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::Meter,
-                    conversion_factor: 1.0,
-                },
-                power: 1,
-            },
-            2 => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::SquareMeter,
-                    conversion_factor: 1.0,
-                },
-                power: 2,
-            },
-            3 => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::CubicMeter,
-                    conversion_factor: 1.0,
-                },
-                power: 3,
-            },
-            _ => panic!("Unsupported dimension with power {}", result_power),
-        }
-    }
-}
-
-impl Div for Dimension {
-    type Output = Dimension;
+impl Div for Unit {
+    type Output = Unit;
 
     fn div(self, rhs: Self) -> Self {
-        // 1[m^6] / 1[m^3] = 1[m^3]
-        // a^6 / a^3 = a^3
-        let result_power = self.power - rhs.power;
+        let result_power = self.power + rhs.power;
 
-        match result_power {
-            0 => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::None,
-                    conversion_factor: 1.0,
-                },
-                power: 0,
-            },
-            1 => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::Meter,
-                    conversion_factor: 1.0,
-                },
-                power: 1,
-            },
-            2 => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::SquareMeter,
-                    conversion_factor: 1.0,
-                },
-                power: 2,
-            },
-            3 => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::CubicMeter,
-                    conversion_factor: 1.0,
-                },
-                power: 3,
-            },
-            _ => panic!("Unsupported dimension with power {}", result_power),
+        Unit {
+            unit: self.unit / rhs.unit,
+            quantity: self.quantity / rhs.quantity,
+            power: result_power,
+            conversion_factor: self.conversion_factor,
         }
     }
 }

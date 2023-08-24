@@ -7,7 +7,7 @@ use std::fmt::Debug;
 #[derive(Debug, Clone)]
 pub struct Memory {
     instructions: Vec<Vec<AstNode>>,
-    pub memory: HashMap<String, DimensionedValue>, // TODO maybe DimensionedValue { unit, power, value }
+    pub memory: HashMap<String, DimensionedValue>,
 }
 
 pub trait Interpreter {
