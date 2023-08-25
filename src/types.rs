@@ -643,17 +643,31 @@ impl Add for DimensionedValue {
     fn add(self, rhs: Self) -> Self {
         println!("\n\nAdding {:#?} to {:#?}", self, rhs);
 
-        let lhs_value_in_base_units =
-            self.value * Value::Float(self.dimension.unit.conversion_factor);
-        let rhs_value_in_base_units =
-            rhs.value * Value::Float(rhs.dimension.unit.conversion_factor);
-        let dimension = self.dimension + rhs.dimension;
+        let lhs_value_in_base_units = match self.unit {
+            Unit { unit, .. } => match unit {
+                UnitIdentity::Second(conversion_factor) => {
+                    self.value * Value::Float(conversion_factor)
+                }
+                _ => todo!("the other units"),
+            },
+        };
+        let rhs_value_in_base_units = match rhs.unit {
+            Unit { unit, .. } => match unit {
+                UnitIdentity::Second(conversion_factor) => {
+                    rhs.value * Value::Float(conversion_factor)
+                }
+                _ => todo!("the other units"),
+            },
+        };
+
+        let unit = self.unit + rhs.unit;
         let value = lhs_value_in_base_units + rhs_value_in_base_units;
+
         println!("\nResult = {:#?}", value);
 
         DimensionedValue {
             value: value,
-            dimension: dimension,
+            unit: unit,
         }
     }
 }
