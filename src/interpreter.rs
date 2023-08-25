@@ -42,7 +42,7 @@ impl Interpreter for Memory {
                     _ => panic!("Variable should be of type AstNode::Variable"),
                 };
 
-                let dimensioned_value = match variable {
+                let united_value = match variable {
                     AstNode::Variable {
                         name: _name,
                         expr: expression,
@@ -53,9 +53,9 @@ impl Interpreter for Memory {
                 println!(
                     "\nStoring result {:#?} = {:#?}",
                     name.clone(),
-                    dimensioned_value.clone()
+                    united_value.clone()
                 );
-                self.memory.insert(name, dimensioned_value);
+                self.memory.insert(name, united_value);
                 println!("=================================\n\n");
             }
         }
@@ -64,13 +64,13 @@ impl Interpreter for Memory {
     fn evaluate(&self, expression: AstNode) -> DimensionedValue {
         match expression {
             AstNode::Name(name) => self.memory[&name].clone(),
-            AstNode::Double { value, dimension } => DimensionedValue {
+            AstNode::Double { value, unit } => DimensionedValue {
                 value: value,
-                dimension: dimension,
+                unit: unit,
             },
-            AstNode::Vector { value, dimension } => DimensionedValue {
+            AstNode::Vector { value, unit } => DimensionedValue {
                 value: value,
-                dimension: dimension,
+                unit: unit,
             },
             AstNode::Expression {
                 operation,
@@ -89,13 +89,13 @@ impl Interpreter for Memory {
     ) -> DimensionedValue {
         let lhs_value = match *lhs {
             AstNode::Name(name) => self.memory[&name].clone(),
-            AstNode::Double { value, dimension } => DimensionedValue {
+            AstNode::Double { value, unit } => DimensionedValue {
                 value: value,
-                dimension: dimension,
+                unit: unit,
             },
-            AstNode::Vector { value, dimension } => DimensionedValue {
+            AstNode::Vector { value, unit } => DimensionedValue {
                 value: value,
-                dimension: dimension,
+                unit: unit,
             },
             AstNode::Expression {
                 operation,
@@ -107,13 +107,13 @@ impl Interpreter for Memory {
 
         let rhs_value = match *rhs {
             AstNode::Name(name) => self.memory[&name].clone(),
-            AstNode::Double { value, dimension } => DimensionedValue {
+            AstNode::Double { value, unit } => DimensionedValue {
                 value: value,
-                dimension: dimension,
+                unit: unit,
             },
-            AstNode::Vector { value, dimension } => DimensionedValue {
+            AstNode::Vector { value, unit } => DimensionedValue {
                 value: value,
-                dimension: dimension,
+                unit: unit,
             },
             AstNode::Expression {
                 operation,
@@ -140,7 +140,7 @@ fn test_interpreter() {
             operation: BinaryOperation::Divide,
             lhs: Box::new(AstNode::Double {
                 value: Value::Float(2.0),
-                dimension: Dimension::Length {
+                unit: Unit::Length {
                     unit: Unit {
                         unit: UnitIdentity::Meter,
                         conversion_factor: 1.0,
@@ -150,7 +150,7 @@ fn test_interpreter() {
             }),
             rhs: Box::new(AstNode::Double {
                 value: Value::Float(2.0),
-                dimension: Dimension::Length {
+                unit: Unit::Length {
                     unit: Unit {
                         unit: UnitIdentity::Kilometer,
                         conversion_factor: 1000.0,

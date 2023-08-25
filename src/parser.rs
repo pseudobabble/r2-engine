@@ -11,7 +11,7 @@ use nom::IResult;
 
 use super::types::*;
 
-fn parse_length(input: &str) -> IResult<&str, Dimension> {
+fn parse_length(input: &str) -> IResult<&str, Unit> {
     println!("reached parse_length {}", input.clone());
 
     // TODO: none of this is very nice, differentiate unit families better
@@ -33,88 +33,69 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
 
     // TODO: add some sugar here so we can write 1[m] instead of 1[m^1]
     // println!("  parsing unit {}", input.clone());
-    let (input, power) = digit1(input)?;
+    let (input, power_string) = digit1(input)?;
+    let power = power_string.parse::<i64>().unwrap();
     // println!("  parsing unit {}", input.clone());
     let (input, _) = tag("]")(input)?;
     // println!("  parsing unit {}", input.clone());
 
     // TODO: We can also have a parser for each unit
     let dimension = match unit_alias {
-        "days" | "day" | "d" => Dimension {
-            unit: Unit {
-                unit: UnitIdentity::Day,
-                conversion_factor: 86400.0,
-            },
-            power: 1, // times dont have power, they are all dimension 1 (what is a day^2?)
+        // Time has a constant power of 1
+        "days" | "day" | "d" => Unit {
+            unit: UnitIdentity::Day(86400.0), // conversion_factor to base unit, Second in this case
+            quantity: Quantity::Time(1),      // Power of the quantity, so this is Days^1
         },
-        "hours" | "hour" | "hr" => Dimension {
-            unit: Unit {
-                unit: UnitIdentity::Hour,
-                conversion_factor: 3600.0,
-            },
-            power: 1,
+        "hours" | "hour" | "hr" => Unit {
+            unit: UnitIdentity::Hour(3600.0),
+            quantity: Quantity::Time(1),
         },
-        "minutes" | "minute" | "min" => Dimension {
-            unit: Unit {
-                unit: UnitIdentity::Minute,
-                conversion_factor: 60.0,
-            },
-            power: 1,
+        "minutes" | "minute" | "min" => Unit {
+            unit: UnitIdentity::Minute(60.0),
+            quantity: Quantity::Time(1),
         },
-        "seconds" | "second" | "s" => Dimension {
-            unit: Unit {
-                unit: UnitIdentity::Second,
-                conversion_factor: 1.0,
-            },
-            power: 1,
+        "seconds" | "second" | "s" => Unit {
+            unit: UnitIdentity::Second(1.0),
+            quantity: Quantity::Time(1),
         },
         "meters" | "meter" | "m" => match power {
-            "1" => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::Meter,
-                    conversion_factor: 1.0,
-                },
-                power: power.parse::<i64>().unwrap(),
+            1 => Unit {
+                unit: UnitIdentity::Meter(1.0),
+                quantity: Quantity::Length(power),
             },
-            "2" => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::SquareMeter,
-                    conversion_factor: 1.0,
-                },
-                power: power.parse::<i64>().unwrap(),
+            2 => Unit {
+                unit: UnitIdentity::SquareMeter(1.0),
+                quantity: Quantity::Length(power),
             },
-            "3" => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::CubicMeter,
-                    conversion_factor: 1.0,
-                },
-                power: power.parse::<i64>().unwrap(),
+            3 => Unit {
+                unit: UnitIdentity::Kilometer(1.0),
+                quantity: Quantity::Length(power),
             },
             _ => todo!("other dimensions in meters"),
         },
         "kilometers" | "kilometer" | "km" => match power {
-            "1" => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::Kilometer,
-                    conversion_factor: 1000.0,
-                },
-                power: power.parse::<i64>().unwrap(),
+            1 => Unit {
+                unit: UnitIdentity::Kilometer(1000.0),
+                quantity: Quantity::Length(power),
             },
-            "2" => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::SquareKilometer,
-                    conversion_factor: 1000000.0,
-                },
-                power: power.parse::<i64>().unwrap(),
+            2 => Unit {
+                unit: UnitIdentity::SquareKilometer(1000000.0),
+                quantity: Quantity::Length(power),
             },
-            "3" => Dimension {
-                unit: Unit {
-                    unit: UnitIdentity::CubicKilometer,
-                    conversion_factor: 1000000000.0,
-                },
-                power: power.parse::<i64>().unwrap(),
+            3 => Unit {
+                unit: UnitIdentity::CubicKilometer(1000000000.0),
+                quantity: Quantity::Length(power),
             },
             _ => todo!("other dimensions in meters"),
+        },
+        // Currency has a constant power of 1
+        "USD" | "$" => Unit {
+            unit: UnitIdentity::USD(1.0), // USD is the base unit
+            quantity: Quantity::Currency(1),
+        },
+        "GBP" | "£" => Unit {
+            unit: UnitIdentity::Day(1.2),
+            quantity: Quantity::Currency(1),
         },
         _ => panic!("Unsupported unit alias {}", unit_alias),
     };
@@ -123,7 +104,7 @@ fn parse_length(input: &str) -> IResult<&str, Dimension> {
 }
 
 /// Switch on dimensions
-fn parse_dimension(input: &str) -> IResult<&str, Dimension> {
+fn parse_dimension(input: &str) -> IResult<&str, Unit> {
     println!("reached parse_dimension {}", input.clone());
     let (input, dimension) = parse_length(input)?;
     // let (input, dimension) = delimited(tag("["), alt((parse_length, parse_volume)), tag("]"))(input)?;
@@ -135,13 +116,13 @@ fn parse_number(number: &str) -> IResult<&str, AstNode> {
     println!("reached parse_number {}", number.clone());
     let (input, number) = double(number)?;
 
-    let (input, dimension) = parse_dimension(input)?;
+    let (input, unit) = parse_dimension(input)?;
 
     Ok((
         input,
         AstNode::Double {
             value: Value::Float(number),
-            dimension: dimension,
+            unit: unit,
         },
     ))
 }
@@ -157,13 +138,13 @@ fn parse_vector(input: &str) -> IResult<&str, AstNode> {
     println!("  reached vector bracket close {}", input.clone());
     let (input, _) = tag("]")(input)?;
 
-    let (input, dimension) = parse_dimension(input)?;
+    let (input, unit) = parse_dimension(input)?;
 
     Ok((
         input,
         AstNode::Vector {
             value: Value::Vec(vector),
-            dimension: dimension,
+            unit: unit,
         },
     ))
 }
@@ -243,7 +224,7 @@ fn test_parse_number() {
             "",
             AstNode::Double {
                 value: Value::Float(1.1),
-                dimension: Dimension {
+                dimension: Unit {
                     unit: Unit {
                         unit: UnitIdentity::Meter,
                         conversion_factor: 1.0
@@ -259,7 +240,7 @@ fn test_parse_number() {
             "",
             AstNode::Double {
                 value: Value::Float(1.0),
-                dimension: Dimension {
+                dimension: Unit {
                     unit: Unit {
                         unit: UnitIdentity::Meter,
                         conversion_factor: 1.0
@@ -275,7 +256,7 @@ fn test_parse_number() {
             "",
             AstNode::Double {
                 value: Value::Float(1.1),
-                dimension: Dimension {
+                dimension: Unit {
                     unit: UnitIdentity::Meter,
                     conversion_factor: 1.0
                 },
@@ -289,7 +270,7 @@ fn test_parse_number() {
             "",
             AstNode::Double {
                 value: Value::Float(9999999.987654),
-                dimension: Dimension {
+                dimension: Unit {
                     unit: UnitIdentity::Meter,
                     conversion_factor: 1.0
                 },
@@ -320,7 +301,7 @@ fn test_parse_variable() {
                 name: Box::new(AstNode::Name("test".to_string())),
                 expr: Box::new(AstNode::Double {
                     value: Value::Float(1.2),
-                    dimension: Dimension { unit: Unit::Meter }
+                    dimension: Unit { unit: Unit::Meter }
                 })
             }
         ))
@@ -334,7 +315,7 @@ fn test_parse_variable() {
                 name: Box::new(AstNode::Name("var".to_string())),
                 expr: Box::new(AstNode::Double {
                     value: Value::Float(-2.0),
-                    dimension: Dimension {
+                    dimension: Unit {
                         unit: Unit::Kilometer
                     }
                 })
@@ -353,13 +334,13 @@ fn test_parse_expression() {
                 operation: BinaryOperation::Divide,
                 lhs: Box::new(AstNode::Double {
                     value: Value::Float(2.0),
-                    dimension: Dimension {
+                    dimension: Unit {
                         unit: Unit::Kilometer
                     }
                 }),
                 rhs: Box::new(AstNode::Double {
                     value: Value::Float(2.0),
-                    dimension: Dimension { unit: Unit::Meter }
+                    dimension: Unit { unit: Unit::Meter }
                 })
             }
         ))
@@ -375,11 +356,11 @@ fn test_parse_expression() {
                     operation: BinaryOperation::Divide,
                     lhs: Box::new(AstNode::Double {
                         value: Value::Float(2.0),
-                        dimension: Dimension { unit: Unit::Meter }
+                        dimension: Unit { unit: Unit::Meter }
                     }),
                     rhs: Box::new(AstNode::Double {
                         value: Value::Float(2.0),
-                        dimension: Dimension {
+                        dimension: Unit {
                             unit: Unit::Kilometer
                         }
                     })
@@ -388,13 +369,13 @@ fn test_parse_expression() {
                     operation: BinaryOperation::Multiply,
                     lhs: Box::new(AstNode::Double {
                         value: Value::Float(4.0),
-                        dimension: Dimension {
+                        dimension: Unit {
                             unit: Unit::Kilometer
                         }
                     }),
                     rhs: Box::new(AstNode::Double {
                         value: Value::Float(4.0),
-                        dimension: Dimension { unit: Unit::Meter }
+                        dimension: Unit { unit: Unit::Meter }
                     })
                 })
             }
@@ -414,11 +395,11 @@ fn parse_variable_expression() {
                     operation: BinaryOperation::Divide,
                     lhs: Box::new(AstNode::Double {
                         value: Value::Float(2.0),
-                        dimension: Dimension { unit: Unit::Meter }
+                        dimension: Unit { unit: Unit::Meter }
                     }),
                     rhs: Box::new(AstNode::Double {
                         value: Value::Float(2.0),
-                        dimension: Dimension {
+                        dimension: Unit {
                             unit: Unit::Kilometer
                         }
                     })
@@ -439,11 +420,11 @@ fn parse_variable_expression() {
                         operation: BinaryOperation::Multiply,
                         lhs: Box::new(AstNode::Double {
                             value: Value::Float(2.0),
-                            dimension: Dimension { unit: Unit::Meter }
+                            dimension: Unit { unit: Unit::Meter }
                         }),
                         rhs: Box::new(AstNode::Double {
                             value: Value::Float(3.0),
-                            dimension: Dimension {
+                            dimension: Unit {
                                 unit: Unit::Kilometer
                             }
                         }),
@@ -452,11 +433,11 @@ fn parse_variable_expression() {
                         operation: BinaryOperation::Add,
                         lhs: Box::new(AstNode::Double {
                             value: Value::Float(4.0),
-                            dimension: Dimension { unit: Unit::Meter }
+                            dimension: Unit { unit: Unit::Meter }
                         }),
                         rhs: Box::new(AstNode::Double {
                             value: Value::Float(5.0),
-                            dimension: Dimension {
+                            dimension: Unit {
                                 unit: Unit::Kilometer
                             }
                         }),
@@ -480,11 +461,11 @@ fn parse_variables_and_abstract_expressions() {
                         operation: BinaryOperation::Multiply,
                         lhs: Box::new(AstNode::Double {
                             value: Value::Float(2.0),
-                            dimension: Dimension { unit: Unit::Meter }
+                            dimension: Unit { unit: Unit::Meter }
                         }),
                         rhs: Box::new(AstNode::Double {
                             value: Value::Float(2.0),
-                            dimension: Dimension {
+                            dimension: Unit {
                                 unit: Unit::Kilometer
                             }
                         })
@@ -494,7 +475,7 @@ fn parse_variables_and_abstract_expressions() {
                     name: Box::new(AstNode::Name("y".to_string())),
                     expr: Box::new(AstNode::Double {
                         value: Value::Float(1.0),
-                        dimension: Dimension {
+                        dimension: Unit {
                             unit: Unit::Kilometer
                         }
                     })
