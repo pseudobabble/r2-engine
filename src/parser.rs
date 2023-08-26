@@ -65,11 +65,11 @@ fn parse_length(input: &str) -> IResult<&str, Unit> {
             },
             2 => Unit {
                 unit: UnitIdentity::SquareMeter(1.0),
-                quantity: Quantity::Length(power),
+                quantity: Quantity::Area(power),
             },
             3 => Unit {
                 unit: UnitIdentity::Kilometer(1.0),
-                quantity: Quantity::Length(power),
+                quantity: Quantity::Volume(power),
             },
             _ => todo!("other dimensions in meters"),
         },
@@ -80,11 +80,11 @@ fn parse_length(input: &str) -> IResult<&str, Unit> {
             },
             2 => Unit {
                 unit: UnitIdentity::SquareKilometer(1000000.0),
-                quantity: Quantity::Length(power),
+                quantity: Quantity::Area(power),
             },
             3 => Unit {
                 unit: UnitIdentity::CubicKilometer(1000000000.0),
-                quantity: Quantity::Length(power),
+                quantity: Quantity::Volume(power),
             },
             _ => todo!("other dimensions in meters"),
         },

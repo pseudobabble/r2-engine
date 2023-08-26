@@ -31,27 +31,6 @@ pub enum UnitIdentity {
     GBP(f64),
 }
 
-// TODO: implement traits for UnitIdentity
-// impl Add for UnitIdentity {
-//     fn add(self, rhs: Self) -> Self {
-//         match self {
-//             UnitIdentity::None => match
-//             UnitIdentity::Second =>
-//             UnitIdentity::Minute => match rhs {},
-//             UnitIdentity::Hour => match rhs {},
-//             UnitIdentity::Day => match rhs {},
-//             UnitIdentity::Meter => match rhs {},
-//             UnitIdentity::Kilometer => match rhs {},
-//             UnitIdentity::MeterSquared => match rhs {},
-//             UnitIdentity::KilometerSquared => match rhs {},
-//             UnitIdentity::CubicMeter => match rhs {},
-//             UnitIdentity::CubicKilometer => match rhs {},
-//             UnitIdentity::USD => match rhs {},
-//             UnitIdentity::GBP => match rhs {},
-//         }
-//     }
-// }
-
 #[derive(PartialEq, PartialOrd, Debug, Clone)]
 pub enum Quantity {
     CompoundQuantity {
@@ -66,6 +45,19 @@ pub enum Quantity {
     Currency(i64),
 }
 
+impl Quantity {
+    fn get_base_unit(&self) -> UnitIdentity {
+        match self {
+            Quantity::Time(power) => UnitIdentity::Second(1.0),
+            Quantity::Length(power) => UnitIdentity::Meter(1.0),
+            Quantity::Area(power) => UnitIdentity::SquareMeter(1.0),
+            Quantity::Volume(power) => UnitIdentity::CubicMeter(1.0),
+            Quantity::Currency(power) => UnitIdentity::USD(1.0),
+            Quantity::CompoundQuantity { .. } => panic!("CompoundQuantity has no base unit"),
+        }
+    }
+}
+
 impl Add for Quantity {
     type Output = Quantity;
 
@@ -78,6 +70,7 @@ impl Add for Quantity {
         let lhs_derived = match self {
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Area(power) => Quantity::Area(power),
             Quantity::Volume(power) => Quantity::Volume(power),
             Quantity::Currency(power) => Quantity::Currency(power),
             Quantity::CompoundQuantity {
@@ -95,6 +88,7 @@ impl Add for Quantity {
         let rhs_derived = match rhs {
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Area(power) => Quantity::Area(power),
             Quantity::Volume(power) => Quantity::Volume(power),
             Quantity::Currency(power) => Quantity::Currency(power),
             Quantity::CompoundQuantity {
@@ -112,29 +106,29 @@ impl Add for Quantity {
         // if simple and type match, add powers
         // otherwise compound
         match lhs_derived {
-            Quantity::Time(lhs_power) => match rhs_derived {
+            Quantity::Time(_lhs_power) => match rhs_derived {
                 // if lhs_derived == rhs_derived
                 // note using lhs power in type comparison to check type and power at same time
                 Quantity::Time(lhs_power) => Quantity::Time(lhs_power),
-                _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            Quantity::Length(lhs_power) => match rhs_derived {
+            Quantity::Length(_lhs_power) => match rhs_derived {
                 Quantity::Length(lhs_power) => Quantity::Length(lhs_power),
-                _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            Quantity::Area(lhs_power) => match rhs_derived {
+            Quantity::Area(_lhs_power) => match rhs_derived {
                 Quantity::Area(lhs_power) => Quantity::Area(lhs_power),
-                _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            Quantity::Volume(lhs_power) => match rhs_derived {
+            Quantity::Volume(_lhs_power) => match rhs_derived {
                 Quantity::Volume(lhs_power) => Quantity::Volume(lhs_power),
-                _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            Quantity::Currency(lhs_power) => match rhs_derived {
+            Quantity::Currency(_lhs_power) => match rhs_derived {
                 Quantity::Currency(lhs_power) => Quantity::Currency(lhs_power),
-                _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
+            _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
         }
     }
 }
@@ -151,6 +145,7 @@ impl Sub for Quantity {
         let lhs_derived = match self {
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Area(power) => Quantity::Area(power),
             Quantity::Volume(power) => Quantity::Volume(power),
             Quantity::Currency(power) => Quantity::Currency(power),
             Quantity::CompoundQuantity {
@@ -168,6 +163,7 @@ impl Sub for Quantity {
         let rhs_derived = match rhs {
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Area(power) => Quantity::Area(power),
             Quantity::Volume(power) => Quantity::Volume(power),
             Quantity::Currency(power) => Quantity::Currency(power),
             Quantity::CompoundQuantity {
@@ -185,29 +181,29 @@ impl Sub for Quantity {
         // if simple and type match, add powers
         // otherwise compound
         match lhs_derived {
-            Quantity::Time(lhs_power) => match rhs_derived {
+            Quantity::Time(_lhs_power) => match rhs_derived {
                 // if lhs_derived == rhs_derived
                 // note using lhs power in type comparison to check type and power at same time
                 Quantity::Time(lhs_power) => Quantity::Time(lhs_power),
-                _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            Quantity::Length(lhs_power) => match rhs_derived {
+            Quantity::Length(_lhs_power) => match rhs_derived {
                 Quantity::Length(lhs_power) => Quantity::Length(lhs_power),
-                _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            Quantity::Area(lhs_power) => match rhs_derived {
+            Quantity::Area(_lhs_power) => match rhs_derived {
                 Quantity::Area(lhs_power) => Quantity::Area(lhs_power),
-                _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            Quantity::Volume(lhs_power) => match rhs_derived {
+            Quantity::Volume(_lhs_power) => match rhs_derived {
                 Quantity::Volume(lhs_power) => Quantity::Volume(lhs_power),
-                _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            Quantity::Currency(lhs_power) => match rhs_derived {
+            Quantity::Currency(_lhs_power) => match rhs_derived {
                 Quantity::Currency(lhs_power) => Quantity::Currency(lhs_power),
-                _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
-            _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
+            _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
         }
     }
 }
@@ -222,10 +218,12 @@ impl Mul for Quantity {
     ///
     /// I think this will work
     fn mul(self, rhs: Self) -> Self {
+        println!("Multiplying {:#?} with {:#?}", self.clone(), rhs.clone());
         // if simple, use, otherwise simplify
         let lhs_derived = match self {
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Area(power) => Quantity::Area(power),
             Quantity::Volume(power) => Quantity::Volume(power),
             Quantity::Currency(power) => Quantity::Currency(power),
             Quantity::CompoundQuantity {
@@ -243,6 +241,7 @@ impl Mul for Quantity {
         let rhs_derived = match rhs {
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Area(power) => Quantity::Area(power),
             Quantity::Volume(power) => Quantity::Volume(power),
             Quantity::Currency(power) => Quantity::Currency(power),
             Quantity::CompoundQuantity {
@@ -256,6 +255,11 @@ impl Mul for Quantity {
                 BinaryOperation::Divide => *lhs / *rhs,
             },
         };
+        println!(
+            "Multiplying {:#?} with {:#?}",
+            lhs_derived.clone(),
+            rhs_derived.clone()
+        );
 
         // if simple and type match, add powers
         // otherwise compound
@@ -300,11 +304,7 @@ impl Mul for Quantity {
                     rhs: Box::new(rhs_derived),
                 },
             },
-            Quantity::CompoundQuantity {
-                operation,
-                lhs,
-                rhs,
-            } => Quantity::CompoundQuantity {
+            Quantity::CompoundQuantity { .. } => Quantity::CompoundQuantity {
                 operation: BinaryOperation::Multiply,
                 lhs: Box::new(lhs_derived),
                 rhs: Box::new(rhs_derived),
@@ -323,6 +323,7 @@ impl Div for Quantity {
         let lhs_derived = match self {
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Area(power) => Quantity::Area(power),
             Quantity::Volume(power) => Quantity::Volume(power),
             Quantity::Currency(power) => Quantity::Currency(power),
             Quantity::CompoundQuantity {
@@ -340,6 +341,7 @@ impl Div for Quantity {
         let rhs_derived = match rhs {
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Area(power) => Quantity::Area(power),
             Quantity::Volume(power) => Quantity::Volume(power),
             Quantity::Currency(power) => Quantity::Currency(power),
             Quantity::CompoundQuantity {
@@ -397,11 +399,7 @@ impl Div for Quantity {
                     rhs: Box::new(rhs_derived),
                 },
             },
-            Quantity::CompoundQuantity {
-                operation,
-                lhs,
-                rhs,
-            } => Quantity::CompoundQuantity {
+            Quantity::CompoundQuantity { .. } => Quantity::CompoundQuantity {
                 operation: BinaryOperation::Multiply,
                 lhs: Box::new(lhs_derived),
                 rhs: Box::new(rhs_derived),
@@ -418,14 +416,38 @@ pub struct Unit {
     pub quantity: Quantity,
 }
 
+impl Unit {
+    fn get_conversion_factor(&self) -> f64 {
+        match self.unit.clone() {
+            UnitIdentity::None(factor) => factor,
+            UnitIdentity::Second(factor) => factor,
+            UnitIdentity::Minute(factor) => factor,
+            UnitIdentity::Hour(factor) => factor,
+            UnitIdentity::Day(factor) => factor,
+            UnitIdentity::Meter(factor) => factor,
+            UnitIdentity::Kilometer(factor) => factor,
+            UnitIdentity::SquareMeter(factor) => factor,
+            UnitIdentity::SquareKilometer(factor) => factor,
+            UnitIdentity::CubicMeter(factor) => factor,
+            UnitIdentity::CubicKilometer(factor) => factor,
+            UnitIdentity::USD(factor) => factor,
+            UnitIdentity::GBP(factor) => factor,
+            UnitIdentity::CompoundUnit { .. } => panic!("CompountUnit has no conversion factor"),
+        }
+    }
+}
+
 impl Add for Unit {
     type Output = Unit;
 
     fn add(self, rhs: Self) -> Self {
-        // if same quantity and same power, fine, otherwise panic
+        let derived_quantity = self.quantity + rhs.quantity;
+        println!("derived quantity {:#?}", derived_quantity);
+        let unit = derived_quantity.get_base_unit();
+        println!("derived unit {:#?}", unit);
         Unit {
-            unit: self.unit + rhs.unit,
-            quantity: self.quantity + rhs.quantity,
+            unit: unit,
+            quantity: derived_quantity,
         }
     }
 }
@@ -434,10 +456,11 @@ impl Sub for Unit {
     type Output = Unit;
 
     fn sub(self, rhs: Self) -> Self {
-        // if same quantity and same power, fine, otherwise panic
+        let derived_quantity = self.quantity - rhs.quantity;
+        let unit = derived_quantity.get_base_unit();
         Unit {
-            unit: self.unit - rhs.unit,
-            quantity: self.quantity - rhs.quantity,
+            unit: unit,
+            quantity: derived_quantity,
         }
     }
 }
@@ -448,9 +471,11 @@ impl Mul for Unit {
     /// 1[m^1] * 1[m^2] = 1[m^3]
     /// a^1 * a^2 = a^3
     fn mul(self, rhs: Self) -> Self {
+        let derived_quantity = self.quantity * rhs.quantity;
+        let unit = derived_quantity.get_base_unit();
         Unit {
-            unit: self.unit * rhs.unit,
-            quantity: self.quantity * rhs.quantity,
+            unit: unit,
+            quantity: derived_quantity,
         }
     }
 }
@@ -459,16 +484,15 @@ impl Div for Unit {
     type Output = Unit;
 
     fn div(self, rhs: Self) -> Self {
+        let derived_quantity = self.quantity / rhs.quantity;
+        let unit = derived_quantity.get_base_unit();
         Unit {
-            unit: self.unit / rhs.unit,
-            quantity: self.quantity / rhs.quantity,
+            unit: unit,
+            quantity: derived_quantity,
         }
     }
 }
 
-// make thhe value an enum like Value::Float64, Value::VecFloat64
-// then can remove all the generic types
-// and how to multiply vec<64> and f64 gets pushed into impl Mul for Value
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Float(f64),
@@ -643,22 +667,11 @@ impl Add for DimensionedValue {
     fn add(self, rhs: Self) -> Self {
         println!("\n\nAdding {:#?} to {:#?}", self, rhs);
 
-        let lhs_value_in_base_units = match self.unit {
-            Unit { unit, .. } => match unit {
-                UnitIdentity::Second(conversion_factor) => {
-                    self.value * Value::Float(conversion_factor)
-                }
-                _ => todo!("the other units"),
-            },
-        };
-        let rhs_value_in_base_units = match rhs.unit {
-            Unit { unit, .. } => match unit {
-                UnitIdentity::Second(conversion_factor) => {
-                    rhs.value * Value::Float(conversion_factor)
-                }
-                _ => todo!("the other units"),
-            },
-        };
+        // the conversion to base units MUST happen here
+        // at the outmost scope, so we dont have to write match arms for every
+        // downstream Mul, Add, etc
+        let lhs_value_in_base_units = self.value * Value::Float(self.unit.get_conversion_factor());
+        let rhs_value_in_base_units = rhs.value * Value::Float(rhs.unit.get_conversion_factor());
 
         let unit = self.unit + rhs.unit;
         let value = lhs_value_in_base_units + rhs_value_in_base_units;
@@ -678,17 +691,20 @@ impl Sub for DimensionedValue {
     fn sub(self, rhs: Self) -> Self {
         println!("\n\nSubtracting {:#?} from {:#?}", rhs, self);
 
-        let lhs_value_in_base_units =
-            self.value * Value::Float(self.dimension.unit.conversion_factor);
-        let rhs_value_in_base_units =
-            rhs.value * Value::Float(rhs.dimension.unit.conversion_factor);
-        let dimension = self.dimension - rhs.dimension;
+        // the conversion to base units MUST happen here
+        // at the outmost scope, so we dont have to write match arms for every
+        // downstream Mul, Add, etc
+        let lhs_value_in_base_units = self.value * Value::Float(self.unit.get_conversion_factor());
+        let rhs_value_in_base_units = rhs.value * Value::Float(rhs.unit.get_conversion_factor());
+
+        let unit = self.unit - rhs.unit;
         let value = lhs_value_in_base_units - rhs_value_in_base_units;
+
         println!("\nResult = {:#?}", value);
 
         DimensionedValue {
             value: value,
-            dimension: dimension,
+            unit: unit,
         }
     }
 }
@@ -699,17 +715,20 @@ impl Mul for DimensionedValue {
     fn mul(self, rhs: Self) -> Self {
         println!("\n\nMultiplying {:#?} with {:#?}", self, rhs);
 
-        let lhs_value_in_base_units =
-            self.value * Value::Float(self.dimension.unit.conversion_factor);
-        let rhs_value_in_base_units =
-            rhs.value * Value::Float(rhs.dimension.unit.conversion_factor);
-        let dimension = self.dimension * rhs.dimension;
+        // the conversion to base units MUST happen here
+        // at the outmost scope, so we dont have to write match arms for every
+        // downstream Mul, Add, etc
+        let lhs_value_in_base_units = self.value * Value::Float(self.unit.get_conversion_factor());
+        let rhs_value_in_base_units = rhs.value * Value::Float(rhs.unit.get_conversion_factor());
+
+        let unit = self.unit * rhs.unit;
         let value = lhs_value_in_base_units * rhs_value_in_base_units;
+
         println!("\nResult = {:#?}", value);
 
         DimensionedValue {
             value: value,
-            dimension: dimension,
+            unit: unit,
         }
     }
 }
@@ -720,17 +739,20 @@ impl Div for DimensionedValue {
     fn div(self, rhs: Self) -> Self {
         println!("\n\nDividing {:#?} into {:#?}", self, rhs);
 
-        let lhs_value_in_base_units =
-            self.value * Value::Float(self.dimension.unit.conversion_factor);
-        let rhs_value_in_base_units =
-            rhs.value * Value::Float(rhs.dimension.unit.conversion_factor);
-        let dimension = self.dimension / rhs.dimension;
+        // the conversion to base units MUST happen here
+        // at the outmost scope, so we dont have to write match arms for every
+        // downstream Mul, Add, etc
+        let lhs_value_in_base_units = self.value * Value::Float(self.unit.get_conversion_factor());
+        let rhs_value_in_base_units = rhs.value * Value::Float(rhs.unit.get_conversion_factor());
+
+        let unit = self.unit / rhs.unit;
         let value = lhs_value_in_base_units / rhs_value_in_base_units;
+
         println!("\nResult = {:#?}", value);
 
         DimensionedValue {
             value: value,
-            dimension: dimension,
+            unit: unit,
         }
     }
 }
