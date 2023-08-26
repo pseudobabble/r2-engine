@@ -21,19 +21,34 @@ fn parse_length(input: &str) -> IResult<&str, Unit> {
     let (input, _) = tag("[")(input)?;
     // println!("  parsing unit {}", input.clone());
     let (input, unit_alias) = alt((
+        tag("days"),
+        tag("day"),
+        tag("d"),
+        tag("hours"),
+        tag("hour"),
+        tag("h"),
+        tag("minutes"),
+        tag("minute"),
+        tag("min"),
+        tag("seconds"),
+        tag("second"),
+        tag("s"),
         tag("meters"),
         tag("meter"),
         tag("m"), // longest to shortest!!
         tag("kilometers"),
         tag("kilometer"),
         tag("km"),
+        alt((tag("USD"), tag("$"), tag("GBP"), tag("£"))),
     ))(input)?;
-    // println!("  parsing unit {}", input.clone());
+    println!("  parsed unit {}", unit_alias.clone());
     let (input, _) = tag("^")(input)?;
 
     // TODO: add some sugar here so we can write 1[m] instead of 1[m^1]
     // println!("  parsing unit {}", input.clone());
     let (input, power_string) = digit1(input)?;
+    println!("  parsed power {}", power_string.clone());
+
     let power = power_string.parse::<i64>().unwrap();
     // println!("  parsing unit {}", input.clone());
     let (input, _) = tag("]")(input)?;
@@ -65,11 +80,11 @@ fn parse_length(input: &str) -> IResult<&str, Unit> {
             },
             2 => Unit {
                 unit: UnitIdentity::SquareMeter(1.0),
-                quantity: Quantity::Area(power),
+                quantity: Quantity::Length(power),
             },
             3 => Unit {
                 unit: UnitIdentity::Kilometer(1.0),
-                quantity: Quantity::Volume(power),
+                quantity: Quantity::Length(power),
             },
             _ => todo!("other dimensions in meters"),
         },
@@ -80,11 +95,11 @@ fn parse_length(input: &str) -> IResult<&str, Unit> {
             },
             2 => Unit {
                 unit: UnitIdentity::SquareKilometer(1000000.0),
-                quantity: Quantity::Area(power),
+                quantity: Quantity::Length(power),
             },
             3 => Unit {
                 unit: UnitIdentity::CubicKilometer(1000000000.0),
-                quantity: Quantity::Volume(power),
+                quantity: Quantity::Length(power),
             },
             _ => todo!("other dimensions in meters"),
         },
