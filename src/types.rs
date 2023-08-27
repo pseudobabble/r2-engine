@@ -1,3 +1,4 @@
+use std::mem::discriminant;
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(PartialEq, PartialOrd, Debug, Clone)]
@@ -76,57 +77,28 @@ impl Add for Quantity {
     /// 1[m^1] + 1[m^1] == 2[m^1]
     /// 1[m^1] + 1[m^2] -> invalid!
     fn add(self, rhs: Self) -> Self {
-        // if simple, use, otherwise simplify
-        let lhs_derived = match self {
-            Quantity::Time(power) => Quantity::Time(power),
-            Quantity::Length(power) => Quantity::Length(power),
-            Quantity::Currency(power) => Quantity::Currency(power),
-            Quantity::CompoundQuantity {
-                operation,
-                lhs,
-                rhs,
-            } => match operation {
-                BinaryOperation::Add => *lhs + *rhs,
-                BinaryOperation::Subtract => *lhs - *rhs,
-                BinaryOperation::Multiply => *lhs * *rhs, // lhs, rhs of compound lhs
-                BinaryOperation::Divide => *lhs / *rhs,
-            },
-        };
-
-        let rhs_derived = match rhs {
-            Quantity::Time(power) => Quantity::Time(power),
-            Quantity::Length(power) => Quantity::Length(power),
-            Quantity::Currency(power) => Quantity::Currency(power),
-            Quantity::CompoundQuantity {
-                lhs,
-                rhs,
-                operation,
-            } => match operation {
-                BinaryOperation::Add => *lhs + *rhs,
-                BinaryOperation::Subtract => *lhs - *rhs,
-                BinaryOperation::Multiply => *lhs * *rhs, // ?
-                BinaryOperation::Divide => *lhs / *rhs,
-            },
-        };
-
         // if simple and type match, add powers
-        // otherwise compound
-        match lhs_derived {
-            Quantity::Time(_lhs_power) => match rhs_derived {
-                // if lhs_derived == rhs_derived
+        // otherwise fail
+        match self {
+            Quantity::Time(_lhs_power) => match rhs {
+                // if self == rhs
                 // note using lhs power in type comparison to check type and power at same time
                 Quantity::Time(lhs_power) => Quantity::Time(lhs_power),
-                _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
+                _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
             },
-            Quantity::Length(_lhs_power) => match rhs_derived {
+            Quantity::Length(_lhs_power) => match rhs {
                 Quantity::Length(lhs_power) => Quantity::Length(lhs_power),
-                _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
+                _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
             },
-            Quantity::Currency(_lhs_power) => match rhs_derived {
+            Quantity::Currency(_lhs_power) => match rhs {
                 Quantity::Currency(lhs_power) => Quantity::Currency(lhs_power),
-                _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
+                _ => panic!("Cannot add {:#?} with {:#?}", self, rhs),
             },
-            _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
+            Quantity::CompoundQuantity { .. } => Quantity::CompoundQuantity {
+                operation: BinaryOperation::Add,
+                lhs: Box::new(self),
+                rhs: Box::new(rhs),
+            },
         }
     }
 }
@@ -139,57 +111,29 @@ impl Sub for Quantity {
     /// 1[m^1] - 1[m^1] == 0[m^1]
     /// 1[m^1] - 1[m^2] -> invalid!
     fn sub(self, rhs: Self) -> Self {
-        // if simple, use, otherwise simplify
-        let lhs_derived = match self {
-            Quantity::Time(power) => Quantity::Time(power),
-            Quantity::Length(power) => Quantity::Length(power),
-            Quantity::Currency(power) => Quantity::Currency(power),
-            Quantity::CompoundQuantity {
-                operation,
-                lhs,
-                rhs,
-            } => match operation {
-                BinaryOperation::Add => *lhs + *rhs,
-                BinaryOperation::Subtract => *lhs - *rhs,
-                BinaryOperation::Multiply => *lhs * *rhs, // lhs, rhs of compound lhs
-                BinaryOperation::Divide => *lhs / *rhs,
-            },
-        };
-
-        let rhs_derived = match rhs {
-            Quantity::Time(power) => Quantity::Time(power),
-            Quantity::Length(power) => Quantity::Length(power),
-            Quantity::Currency(power) => Quantity::Currency(power),
-            Quantity::CompoundQuantity {
-                lhs,
-                rhs,
-                operation,
-            } => match operation {
-                BinaryOperation::Add => *lhs + *rhs,
-                BinaryOperation::Subtract => *lhs - *rhs,
-                BinaryOperation::Multiply => *lhs * *rhs, // ?
-                BinaryOperation::Divide => *lhs / *rhs,
-            },
-        };
-
         // if simple and type match, add powers
         // otherwise compound
-        match lhs_derived {
-            Quantity::Time(_lhs_power) => match rhs_derived {
-                // if lhs_derived == rhs_derived
+        match self {
+            Quantity::Time(_lhs_power) => match rhs {
+                // if self == rhs
                 // note using lhs power in type comparison to check type and power at same time
                 Quantity::Time(lhs_power) => Quantity::Time(lhs_power),
-                _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
+                _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
             },
-            Quantity::Length(_lhs_power) => match rhs_derived {
+            Quantity::Length(_lhs_power) => match rhs {
                 Quantity::Length(lhs_power) => Quantity::Length(lhs_power),
-                _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
+                _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
             },
-            Quantity::Currency(_lhs_power) => match rhs_derived {
+            Quantity::Currency(_lhs_power) => match rhs {
                 Quantity::Currency(lhs_power) => Quantity::Currency(lhs_power),
-                _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
+                _ => panic!("Cannot subtract {:#?} with {:#?}", self, rhs),
             },
-            _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
+            Quantity::CompoundQuantity { .. } => {
+                panic!(
+                    "Cannot subtract compound quantity {:#?} from {:#?}",
+                    rhs, self
+                )
+            }
         }
     }
 }
@@ -197,83 +141,39 @@ impl Sub for Quantity {
 impl Mul for Quantity {
     type Output = Quantity;
 
-    /// 1[m^1] * 1[m^2] = 1[m^3]
-    /// a^1 * a^2 = a^3
-    /// multiplying a unit returns
-    /// like avaluate
-    ///
-    /// I think this will work
     fn mul(self, rhs: Self) -> Self {
         println!("Multiplying {:#?} with {:#?}", self.clone(), rhs.clone());
-        // if simple, use, otherwise simplify
-        let lhs_derived = match self {
-            Quantity::Time(power) => Quantity::Time(power),
-            Quantity::Length(power) => Quantity::Length(power),
-            Quantity::Currency(power) => Quantity::Currency(power),
-            Quantity::CompoundQuantity {
-                operation,
-                lhs,
-                rhs,
-            } => match operation {
-                BinaryOperation::Add => *lhs + *rhs,
-                BinaryOperation::Subtract => *lhs - *rhs,
-                BinaryOperation::Multiply => *lhs * *rhs, // lhs, rhs of compound lhs
-                BinaryOperation::Divide => *lhs / *rhs,
-            },
-        };
-
-        let rhs_derived = match rhs {
-            Quantity::Time(power) => Quantity::Time(power),
-            Quantity::Length(power) => Quantity::Length(power),
-            Quantity::Currency(power) => Quantity::Currency(power),
-            Quantity::CompoundQuantity {
-                lhs,
-                rhs,
-                operation,
-            } => match operation {
-                BinaryOperation::Add => *lhs + *rhs,
-                BinaryOperation::Subtract => *lhs - *rhs,
-                BinaryOperation::Multiply => *lhs * *rhs, // ?
-                BinaryOperation::Divide => *lhs / *rhs,
-            },
-        };
-        println!(
-            "Multiplying {:#?} with {:#?}",
-            lhs_derived.clone(),
-            rhs_derived.clone()
-        );
-
         // if simple and type match, add powers
         // otherwise compound
-        match lhs_derived {
-            Quantity::Time(lhs_power) => match rhs_derived {
+        match self {
+            Quantity::Time(lhs_power) => match rhs {
                 Quantity::Time(rhs_power) => Quantity::Time(lhs_power + rhs_power),
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Multiply,
-                    lhs: Box::new(lhs_derived),
-                    rhs: Box::new(rhs_derived),
+                    lhs: Box::new(self),
+                    rhs: Box::new(rhs),
                 },
             },
-            Quantity::Length(lhs_power) => match rhs_derived {
+            Quantity::Length(lhs_power) => match rhs {
                 Quantity::Length(rhs_power) => Quantity::Length(lhs_power + rhs_power),
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Multiply,
-                    lhs: Box::new(lhs_derived),
-                    rhs: Box::new(rhs_derived),
+                    lhs: Box::new(self),
+                    rhs: Box::new(rhs),
                 },
             },
-            Quantity::Currency(lhs_power) => match rhs_derived {
+            Quantity::Currency(lhs_power) => match rhs {
                 Quantity::Currency(rhs_power) => Quantity::Currency(lhs_power + rhs_power),
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Multiply,
-                    lhs: Box::new(lhs_derived),
-                    rhs: Box::new(rhs_derived),
+                    lhs: Box::new(self),
+                    rhs: Box::new(rhs),
                 },
             },
             Quantity::CompoundQuantity { .. } => Quantity::CompoundQuantity {
                 operation: BinaryOperation::Multiply,
-                lhs: Box::new(lhs_derived),
-                rhs: Box::new(rhs_derived),
+                lhs: Box::new(self),
+                rhs: Box::new(rhs),
             },
         }
     }
@@ -285,70 +185,37 @@ impl Div for Quantity {
     /// 1[m^1] * 1[m^2] = 1[m^3]
     /// a^1 * a^2 = a^3
     fn div(self, rhs: Self) -> Self {
-        // if simple, use, otherwise simplify
-        let lhs_derived = match self {
-            Quantity::Time(power) => Quantity::Time(power),
-            Quantity::Length(power) => Quantity::Length(power),
-            Quantity::Currency(power) => Quantity::Currency(power),
-            Quantity::CompoundQuantity {
-                operation,
-                lhs,
-                rhs,
-            } => match operation {
-                BinaryOperation::Add => *lhs + *rhs,
-                BinaryOperation::Subtract => *lhs - *rhs,
-                BinaryOperation::Multiply => *lhs * *rhs, // lhs, rhs of compound lhs
-                BinaryOperation::Divide => *lhs / *rhs,
-            },
-        };
-
-        let rhs_derived = match rhs {
-            Quantity::Time(power) => Quantity::Time(power),
-            Quantity::Length(power) => Quantity::Length(power),
-            Quantity::Currency(power) => Quantity::Currency(power),
-            Quantity::CompoundQuantity {
-                lhs,
-                rhs,
-                operation,
-            } => match operation {
-                BinaryOperation::Add => *lhs + *rhs,
-                BinaryOperation::Subtract => *lhs - *rhs,
-                BinaryOperation::Multiply => *lhs * *rhs, // ?
-                BinaryOperation::Divide => *lhs / *rhs,
-            },
-        };
-
         // if simple and type match, add powers
         // otherwise compound
-        match lhs_derived {
-            Quantity::Time(lhs_power) => match rhs_derived {
+        match self {
+            Quantity::Time(lhs_power) => match rhs {
                 Quantity::Time(rhs_power) => Quantity::Time(lhs_power - rhs_power),
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Divide,
-                    lhs: Box::new(lhs_derived),
-                    rhs: Box::new(rhs_derived),
+                    lhs: Box::new(self),
+                    rhs: Box::new(rhs),
                 },
             },
-            Quantity::Length(lhs_power) => match rhs_derived {
+            Quantity::Length(lhs_power) => match rhs {
                 Quantity::Length(rhs_power) => Quantity::Length(lhs_power - rhs_power),
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Divide,
-                    lhs: Box::new(lhs_derived),
-                    rhs: Box::new(rhs_derived),
+                    lhs: Box::new(self),
+                    rhs: Box::new(rhs),
                 },
             },
-            Quantity::Currency(lhs_power) => match rhs_derived {
+            Quantity::Currency(lhs_power) => match rhs {
                 Quantity::Currency(rhs_power) => Quantity::Currency(lhs_power - rhs_power),
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Divide,
-                    lhs: Box::new(lhs_derived),
-                    rhs: Box::new(rhs_derived),
+                    lhs: Box::new(self),
+                    rhs: Box::new(rhs),
                 },
             },
             Quantity::CompoundQuantity { .. } => Quantity::CompoundQuantity {
                 operation: BinaryOperation::Divide,
-                lhs: Box::new(lhs_derived),
-                rhs: Box::new(rhs_derived),
+                lhs: Box::new(self),
+                rhs: Box::new(rhs),
             },
         }
     }
@@ -378,7 +245,65 @@ impl Unit {
             UnitIdentity::CubicKilometer(factor) => factor,
             UnitIdentity::USD(factor) => factor,
             UnitIdentity::GBP(factor) => factor,
-            UnitIdentity::CompoundUnit { .. } => 1.0,
+            UnitIdentity::CompoundUnit { .. } => 1.0, // hack
+        }
+    }
+
+    fn simplify(self) -> Unit {
+        // if simple, return it,
+        // otherwise simplify
+        let simplified_quantity = match self.quantity.clone() {
+            Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Time(power) => Quantity::Time(power),
+            Quantity::Currency(power) => Quantity::Currency(power),
+            Quantity::CompoundQuantity {
+                operation,
+                lhs,
+                rhs,
+            } => self.simplify_compound(operation, *lhs, *rhs),
+        };
+
+        Unit {
+            unit: self.unit.clone(),
+            quantity: simplified_quantity,
+        }
+    }
+
+    fn simplify_compound(
+        &self,
+        operation: BinaryOperation,
+        lhs: Quantity,
+        rhs: Quantity,
+    ) -> Quantity {
+        let lhs_unit = match lhs {
+            Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Time(power) => Quantity::Time(power),
+            Quantity::Currency(power) => Quantity::Currency(power),
+            Quantity::CompoundQuantity {
+                operation,
+                lhs,
+                rhs,
+            } => self.simplify_compound(operation, *lhs, *rhs),
+        };
+
+        let rhs_unit = match rhs {
+            Quantity::Length(power) => Quantity::Length(power),
+            Quantity::Time(power) => Quantity::Time(power),
+            Quantity::Currency(power) => Quantity::Currency(power),
+            Quantity::CompoundQuantity {
+                operation,
+                lhs,
+                rhs,
+            } => self.simplify_compound(operation, *lhs, *rhs),
+        };
+
+        match operation {
+            BinaryOperation::Add => {
+                // if same
+            }
+            BinaryOperation::Subtract => lhs_unit - rhs_unit,
+            BinaryOperation::Multiply => lhs_unit * rhs_unit,
+            BinaryOperation::Divide => lhs_unit / rhs_unit,
         }
     }
 }
@@ -679,7 +604,7 @@ impl Mul for DimensionedValue {
 
         DimensionedValue {
             value: value,
-            unit: unit,
+            unit: unit.simplify(),
         }
     }
 }
