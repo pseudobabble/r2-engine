@@ -21,9 +21,8 @@ fn parse_length(input: &str) -> IResult<&str, Unit> {
     let (input, _) = tag("[")(input)?;
     // println!("  parsing unit {}", input.clone());
     let (input, unit_alias) = alt((
-        tag("days"),
-        tag("day"),
-        tag("d"),
+        tag("none"),
+        alt((tag("days"), tag("day"), tag("d"))),
         tag("hours"),
         tag("hour"),
         tag("h"),
@@ -56,6 +55,10 @@ fn parse_length(input: &str) -> IResult<&str, Unit> {
 
     // TODO: We can also have a parser for each unit
     let dimension = match unit_alias {
+        "none" => Unit {
+            unit: UnitIdentity::None(1.0),
+            quantity: Quantity::None(1),
+        },
         // Time has a constant power of 1
         "days" | "day" | "d" => Unit {
             unit: UnitIdentity::Day(86400.0), // conversion_factor to base unit, Second in this case

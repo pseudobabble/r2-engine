@@ -38,6 +38,7 @@ pub enum Quantity {
         lhs: Box<Quantity>,
         rhs: Box<Quantity>,
     },
+    None(i64),
     Length(i64),
     //    Mass(i64),
     Time(i64),
@@ -47,6 +48,7 @@ pub enum Quantity {
 impl Quantity {
     fn get_base_unit(&self) -> UnitIdentity {
         match self {
+            Quantity::None(power) => UnitIdentity::None(1.0),
             Quantity::Time(power) => UnitIdentity::Second(1.0),
             Quantity::Length(power) => match power {
                 1 => UnitIdentity::Meter(1.0),
@@ -78,6 +80,7 @@ impl Add for Quantity {
     fn add(self, rhs: Self) -> Self {
         // if simple, use, otherwise simplify
         let lhs_derived = match self {
+            Quantity::None(power) => Quantity::None(power),
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
             Quantity::Currency(power) => Quantity::Currency(power),
@@ -94,6 +97,7 @@ impl Add for Quantity {
         };
 
         let rhs_derived = match rhs {
+            Quantity::None(power) => Quantity::None(power),
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
             Quantity::Currency(power) => Quantity::Currency(power),
@@ -112,18 +116,22 @@ impl Add for Quantity {
         // if simple and type match, add powers
         // otherwise compound
         match lhs_derived {
+            Quantity::None(power) => rhs_derived,
             Quantity::Time(_lhs_power) => match rhs_derived {
                 // if lhs_derived == rhs_derived
                 // note using lhs power in type comparison to check type and power at same time
                 Quantity::Time(lhs_power) => Quantity::Time(lhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
             Quantity::Length(_lhs_power) => match rhs_derived {
                 Quantity::Length(lhs_power) => Quantity::Length(lhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
             Quantity::Currency(_lhs_power) => match rhs_derived {
                 Quantity::Currency(lhs_power) => Quantity::Currency(lhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
             _ => panic!("Cannot add {:#?} with {:#?}", lhs_derived, rhs_derived),
@@ -141,6 +149,7 @@ impl Sub for Quantity {
     fn sub(self, rhs: Self) -> Self {
         // if simple, use, otherwise simplify
         let lhs_derived = match self {
+            Quantity::None(power) => Quantity::None(power),
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
             Quantity::Currency(power) => Quantity::Currency(power),
@@ -157,6 +166,7 @@ impl Sub for Quantity {
         };
 
         let rhs_derived = match rhs {
+            Quantity::None(power) => Quantity::None(power),
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
             Quantity::Currency(power) => Quantity::Currency(power),
@@ -175,18 +185,22 @@ impl Sub for Quantity {
         // if simple and type match, add powers
         // otherwise compound
         match lhs_derived {
+            Quantity::None(power) => rhs_derived,
             Quantity::Time(_lhs_power) => match rhs_derived {
                 // if lhs_derived == rhs_derived
                 // note using lhs power in type comparison to check type and power at same time
                 Quantity::Time(lhs_power) => Quantity::Time(lhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
             Quantity::Length(_lhs_power) => match rhs_derived {
                 Quantity::Length(lhs_power) => Quantity::Length(lhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
             Quantity::Currency(_lhs_power) => match rhs_derived {
                 Quantity::Currency(lhs_power) => Quantity::Currency(lhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
             },
             _ => panic!("Cannot subtract {:#?} with {:#?}", lhs_derived, rhs_derived),
@@ -207,6 +221,7 @@ impl Mul for Quantity {
         println!("Multiplying {:#?} with {:#?}", self.clone(), rhs.clone());
         // if simple, use, otherwise simplify
         let lhs_derived = match self {
+            Quantity::None(power) => Quantity::None(power),
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
             Quantity::Currency(power) => Quantity::Currency(power),
@@ -223,6 +238,7 @@ impl Mul for Quantity {
         };
 
         let rhs_derived = match rhs {
+            Quantity::None(power) => Quantity::None(power),
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
             Quantity::Currency(power) => Quantity::Currency(power),
@@ -246,8 +262,10 @@ impl Mul for Quantity {
         // if simple and type match, add powers
         // otherwise compound
         match lhs_derived {
+            Quantity::None(power) => rhs_derived,
             Quantity::Time(lhs_power) => match rhs_derived {
                 Quantity::Time(rhs_power) => Quantity::Time(lhs_power + rhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Multiply,
                     lhs: Box::new(lhs_derived),
@@ -256,6 +274,7 @@ impl Mul for Quantity {
             },
             Quantity::Length(lhs_power) => match rhs_derived {
                 Quantity::Length(rhs_power) => Quantity::Length(lhs_power + rhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Multiply,
                     lhs: Box::new(lhs_derived),
@@ -264,16 +283,20 @@ impl Mul for Quantity {
             },
             Quantity::Currency(lhs_power) => match rhs_derived {
                 Quantity::Currency(rhs_power) => Quantity::Currency(lhs_power + rhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Multiply,
                     lhs: Box::new(lhs_derived),
                     rhs: Box::new(rhs_derived),
                 },
             },
-            Quantity::CompoundQuantity { .. } => Quantity::CompoundQuantity {
-                operation: BinaryOperation::Multiply,
-                lhs: Box::new(lhs_derived),
-                rhs: Box::new(rhs_derived),
+            Quantity::CompoundQuantity { .. } => match rhs_derived {
+                Quantity::None(power) => lhs_derived,
+                _ => Quantity::CompoundQuantity {
+                    operation: BinaryOperation::Multiply,
+                    lhs: Box::new(lhs_derived),
+                    rhs: Box::new(rhs_derived),
+                },
             },
         }
     }
@@ -285,8 +308,10 @@ impl Div for Quantity {
     /// 1[m^1] * 1[m^2] = 1[m^3]
     /// a^1 * a^2 = a^3
     fn div(self, rhs: Self) -> Self {
+        println!("Multiplying {:#?} with {:#?}", self.clone(), rhs.clone());
         // if simple, use, otherwise simplify
         let lhs_derived = match self {
+            Quantity::None(power) => Quantity::None(power),
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
             Quantity::Currency(power) => Quantity::Currency(power),
@@ -303,6 +328,7 @@ impl Div for Quantity {
         };
 
         let rhs_derived = match rhs {
+            Quantity::None(power) => Quantity::None(power),
             Quantity::Time(power) => Quantity::Time(power),
             Quantity::Length(power) => Quantity::Length(power),
             Quantity::Currency(power) => Quantity::Currency(power),
@@ -317,12 +343,19 @@ impl Div for Quantity {
                 BinaryOperation::Divide => *lhs / *rhs,
             },
         };
+        println!(
+            "Multiplying {:#?} with {:#?}",
+            lhs_derived.clone(),
+            rhs_derived.clone()
+        );
 
         // if simple and type match, add powers
         // otherwise compound
         match lhs_derived {
+            Quantity::None(power) => rhs_derived,
             Quantity::Time(lhs_power) => match rhs_derived {
                 Quantity::Time(rhs_power) => Quantity::Time(lhs_power - rhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Divide,
                     lhs: Box::new(lhs_derived),
@@ -331,6 +364,7 @@ impl Div for Quantity {
             },
             Quantity::Length(lhs_power) => match rhs_derived {
                 Quantity::Length(rhs_power) => Quantity::Length(lhs_power - rhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Divide,
                     lhs: Box::new(lhs_derived),
@@ -339,16 +373,20 @@ impl Div for Quantity {
             },
             Quantity::Currency(lhs_power) => match rhs_derived {
                 Quantity::Currency(rhs_power) => Quantity::Currency(lhs_power - rhs_power),
+                Quantity::None(power) => lhs_derived,
                 _ => Quantity::CompoundQuantity {
                     operation: BinaryOperation::Divide,
                     lhs: Box::new(lhs_derived),
                     rhs: Box::new(rhs_derived),
                 },
             },
-            Quantity::CompoundQuantity { .. } => Quantity::CompoundQuantity {
-                operation: BinaryOperation::Divide,
-                lhs: Box::new(lhs_derived),
-                rhs: Box::new(rhs_derived),
+            Quantity::CompoundQuantity { .. } => match rhs_derived {
+                Quantity::None(power) => lhs_derived,
+                _ => Quantity::CompoundQuantity {
+                    operation: BinaryOperation::Divide,
+                    lhs: Box::new(lhs_derived),
+                    rhs: Box::new(rhs_derived),
+                },
             },
         }
     }
