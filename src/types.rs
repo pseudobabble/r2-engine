@@ -18,6 +18,10 @@ pub enum BinaryOperation {
 #[derive(PartialEq, PartialOrd, Eq, Debug, Clone, Copy)]
 pub enum UnitIdentity {
     None,
+    Second,
+    Minute,
+    Hour,
+    Day,
     Meter,
     Kilometer,
     SquareMeter,
@@ -55,7 +59,10 @@ impl Add for Dimension {
                     power: 1,
                 },
                 // Cannot add Length to eg, Area
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!(
+                    "Cannot add dimensions with different powers: {:#?} to {:#?}",
+                    self, rhs
+                ),
             },
             2 => match rhs.power.clone() {
                 2 => Dimension {
@@ -65,7 +72,10 @@ impl Add for Dimension {
                     },
                     power: 2,
                 },
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!(
+                    "Cannot add dimensions with different powers: {:#?} to {:#?}",
+                    self, rhs
+                ),
             },
             3 => match rhs.power.clone() {
                 3 => Dimension {
@@ -75,7 +85,10 @@ impl Add for Dimension {
                     },
                     power: 2,
                 },
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!(
+                    "Cannot add dimensions with different powers: {:#?} to {:#?}",
+                    self, rhs
+                ),
             },
             _ => panic!("Unsupported dimension with power {}", self.power.clone()),
         }
@@ -95,7 +108,7 @@ impl Sub for Dimension {
                     },
                     power: 1,
                 },
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
             },
             2 => match rhs.power.clone() {
                 2 => Dimension {
@@ -105,7 +118,7 @@ impl Sub for Dimension {
                     },
                     power: 2,
                 },
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
             },
             3 => match rhs.power.clone() {
                 3 => Dimension {
@@ -115,7 +128,7 @@ impl Sub for Dimension {
                     },
                     power: 3,
                 },
-                _ => panic!("Cannot add {:#?} to {:#?}", self, rhs),
+                _ => panic!("Cannot subtract {:#?} to {:#?}", self, rhs),
             },
             _ => panic!("Unsupported dimension with power {}", self.power.clone()),
         }
@@ -199,9 +212,174 @@ impl Div for Dimension {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+// make thhe value an enum like Value::Float64, Value::VecFloat64
+// then can remove all the generic types
+// and how to multiply vec<64> and f64 gets pushed into impl Mul for Value
+#[derive(Debug, Clone, PartialEq)]
+pub enum Value {
+    Float(f64),
+    Vec(Vec<f64>),
+}
+
+fn scalar_vector_addition(scalar: f64, vector: Vec<f64>) -> Vec<f64> {
+    vector.iter().map(|left_x| left_x + scalar).collect()
+}
+
+fn scalar_vector_subtraction(scalar: f64, vector: Vec<f64>) -> Vec<f64> {
+    vector.iter().map(|left_x| left_x - scalar).collect()
+}
+
+fn scalar_vector_multiplication(scalar: f64, vector: Vec<f64>) -> Vec<f64> {
+    vector.iter().map(|left_x| left_x * scalar).collect()
+}
+
+fn scalar_vector_division(scalar: f64, vector: Vec<f64>) -> Vec<f64> {
+    vector.iter().map(|left_x| left_x / scalar).collect()
+}
+
+fn elementwise_vector_addition(lhs_value: Vec<f64>, rhs_value: Vec<f64>) -> Vec<f64> {
+    lhs_value
+        .iter()
+        .zip(rhs_value)
+        .map(|(left_x, right_x)| left_x + right_x)
+        .collect()
+}
+
+fn elementwise_vector_subtraction(lhs_value: Vec<f64>, rhs_value: Vec<f64>) -> Vec<f64> {
+    lhs_value
+        .iter()
+        .zip(rhs_value)
+        .map(|(left_x, right_x)| left_x - right_x)
+        .collect()
+}
+
+fn elementwise_vector_multiplication(lhs_value: Vec<f64>, rhs_value: Vec<f64>) -> Vec<f64> {
+    lhs_value
+        .iter()
+        .zip(rhs_value)
+        .map(|(left_x, right_x)| left_x * right_x)
+        .collect()
+}
+
+fn elementwise_vector_division(lhs_value: Vec<f64>, rhs_value: Vec<f64>) -> Vec<f64> {
+    lhs_value
+        .iter()
+        .zip(rhs_value)
+        .map(|(left_x, right_x)| left_x / right_x)
+        .collect()
+}
+
+impl Add for Value {
+    type Output = Value;
+
+    fn add(self, rhs: Self) -> Self {
+        match self {
+            // we are float
+            Value::Float(lhs_value) => match rhs {
+                // they are float
+                Value::Float(rhs_value) => Value::Float(lhs_value + rhs_value),
+                // they are vec
+                Value::Vec(rhs_value) => Value::Vec(scalar_vector_addition(lhs_value, rhs_value)),
+            },
+            // we are vec
+            Value::Vec(lhs_value) => match rhs {
+                // they are float
+                Value::Float(rhs_value) => Value::Vec(scalar_vector_addition(rhs_value, lhs_value)),
+                // they are vec
+                Value::Vec(rhs_value) => {
+                    Value::Vec(elementwise_vector_addition(lhs_value, rhs_value))
+                }
+            },
+        }
+    }
+}
+
+impl Sub for Value {
+    type Output = Value;
+
+    fn sub(self, rhs: Self) -> Self {
+        match self {
+            // we are float
+            Value::Float(lhs_value) => match rhs {
+                // they are float
+                Value::Float(rhs_value) => Value::Float(lhs_value + rhs_value),
+                // they are vec
+                Value::Vec(rhs_value) => {
+                    Value::Vec(scalar_vector_subtraction(lhs_value, rhs_value))
+                }
+            },
+            // we are vec
+            Value::Vec(lhs_value) => match rhs {
+                // they are float
+                Value::Float(rhs_value) => {
+                    Value::Vec(scalar_vector_subtraction(rhs_value, lhs_value))
+                }
+                // they are vec
+                Value::Vec(rhs_value) => {
+                    Value::Vec(elementwise_vector_subtraction(lhs_value, rhs_value))
+                }
+            },
+        }
+    }
+}
+
+impl Mul for Value {
+    type Output = Value;
+
+    fn mul(self, rhs: Self) -> Self {
+        match self {
+            // we are float
+            Value::Float(lhs_value) => match rhs {
+                // they are float
+                Value::Float(rhs_value) => Value::Float(lhs_value * rhs_value),
+                // they are vec
+                Value::Vec(rhs_value) => {
+                    Value::Vec(scalar_vector_multiplication(lhs_value, rhs_value))
+                }
+            },
+            // we are vec
+            Value::Vec(lhs_value) => match rhs {
+                // they are float
+                Value::Float(rhs_value) => {
+                    Value::Vec(scalar_vector_multiplication(rhs_value, lhs_value))
+                }
+                // they are vec
+                Value::Vec(rhs_value) => {
+                    Value::Vec(elementwise_vector_multiplication(lhs_value, rhs_value))
+                }
+            },
+        }
+    }
+}
+
+impl Div for Value {
+    type Output = Value;
+
+    fn div(self, rhs: Self) -> Self {
+        match self {
+            // we are float
+            Value::Float(lhs_value) => match rhs {
+                // they are float
+                Value::Float(rhs_value) => Value::Float(lhs_value * rhs_value),
+                // they are vec
+                Value::Vec(rhs_value) => Value::Vec(scalar_vector_division(lhs_value, rhs_value)),
+            },
+            // we are vec
+            Value::Vec(lhs_value) => match rhs {
+                // they are float
+                Value::Float(rhs_value) => Value::Vec(scalar_vector_division(rhs_value, lhs_value)),
+                // they are vec
+                Value::Vec(rhs_value) => {
+                    Value::Vec(elementwise_vector_division(lhs_value, rhs_value))
+                }
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct DimensionedValue {
-    pub value: f64,
+    pub value: Value,
     pub dimension: Dimension,
 }
 
@@ -217,8 +395,10 @@ impl Add for DimensionedValue {
             rhs.dimension.clone(),
         );
 
-        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
-        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
+        let lhs_value_in_base_units =
+            self.value * Value::Float(self.dimension.unit.conversion_factor);
+        let rhs_value_in_base_units =
+            rhs.value * Value::Float(rhs.dimension.unit.conversion_factor);
         let dimension = self.dimension + rhs.dimension;
         let value = lhs_value_in_base_units + rhs_value_in_base_units;
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
@@ -242,8 +422,10 @@ impl Sub for DimensionedValue {
             self.dimension.clone()
         );
 
-        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
-        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
+        let lhs_value_in_base_units =
+            self.value * Value::Float(self.dimension.unit.conversion_factor);
+        let rhs_value_in_base_units =
+            rhs.value * Value::Float(rhs.dimension.unit.conversion_factor);
         let dimension = self.dimension - rhs.dimension;
         let value = lhs_value_in_base_units - rhs_value_in_base_units;
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
@@ -267,8 +449,10 @@ impl Mul for DimensionedValue {
             rhs.dimension.clone(),
         );
 
-        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
-        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
+        let lhs_value_in_base_units =
+            self.value * Value::Float(self.dimension.unit.conversion_factor);
+        let rhs_value_in_base_units =
+            rhs.value * Value::Float(rhs.dimension.unit.conversion_factor);
         let dimension = self.dimension * rhs.dimension;
         let value = lhs_value_in_base_units * rhs_value_in_base_units;
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
@@ -292,8 +476,10 @@ impl Div for DimensionedValue {
             rhs.dimension.clone(),
         );
 
-        let lhs_value_in_base_units = self.value * self.dimension.unit.conversion_factor;
-        let rhs_value_in_base_units = rhs.value * rhs.dimension.unit.conversion_factor;
+        let lhs_value_in_base_units =
+            self.value * Value::Float(self.dimension.unit.conversion_factor);
+        let rhs_value_in_base_units =
+            rhs.value * Value::Float(rhs.dimension.unit.conversion_factor);
         let dimension = self.dimension / rhs.dimension;
         let value = lhs_value_in_base_units / rhs_value_in_base_units;
         println!("\nResult = {:#?}[{:#?}]", value, dimension);
@@ -309,7 +495,11 @@ impl Div for DimensionedValue {
 pub enum AstNode {
     Print(Box<AstNode>),
     Double {
-        value: f64,
+        value: Value,
+        dimension: Dimension,
+    },
+    Vector {
+        value: Value,
         dimension: Dimension,
     },
     Name(String),

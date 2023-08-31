@@ -45,19 +45,36 @@ a = 1[km];
 b = (2[m] * 2[km]);
 c = (a + b);
 #+end_src
-*** TODO Vectorise calculations
+*** DONE Vectorise calculations
+CLOSED: [2023-08-23 Wed 09:49]
 #+begin_src
 a = [1, 2, 3, 4, 5][km];
 b = ([4, 6, 32, 7, 9][m] * [25, 2, 2, 1, 5][km]);
 c = (a + b);
 #+end_src
+- [X] vector support
+- [X] parse and support scalars & vectors together
+  - [X] parse scalars as single element lists
+  - [X] extend single element lists to length of other list
 
+#+begin_quote
 Generic =DimensionedValue= with different =Mul + Add + ..= implementations
 takes =f64=, =Vec<f64>=
-
+#+end_quote
+Turned out to be: generic types (=struct<T>=) with type specific behaviour in traits.
+*** TODO Add dimensionless values
+  - [ ] parse dimensionless values without units (scalars/scalar vecs without units) as values with power 0 and units None
+*** TODO Add multiplication across unit families
+unit families?
+eg currency / time.. it remains unresolved in the equation, we need to represent these
+or are these just dimensions?
+when the unit family is different + and - make no sense but * and / do, you get currency / time for example
 *** TODO Parse csvs with declared var names as column headings
 #+begin_src
 a = csv{height_of_side[km]};
 b = csv{width_of_base[m]};
 c = (a * b);
 #+end_src
+*** TODO =impl Fmt for MyTypes=
+so that we can print out vector and non vector calculations
+*** TODO Add a cli

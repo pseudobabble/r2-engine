@@ -6,7 +6,7 @@ pub mod interpreter;
 pub mod parser;
 pub mod types;
 
-use interpreter::Interpreter;
+use interpreter::{Interpreter, Memory};
 use parser::*;
 
 /// (average_wage_per_unit_calendar_time * (avoided_days_of_lost_due_to_anxiety + avoided_days_of_lost_due_to_depression))
@@ -28,7 +28,7 @@ use parser::*;
 /// TODO: variables need units, otherwise can do valid but unintended calculations
 
 fn main() -> () {
-    let mut test_file = File::open("./test.r2").unwrap();
+    let mut test_file = File::open("./vector.r2").unwrap();
     let mut input_file_contents = String::new();
     test_file.read_to_string(&mut input_file_contents).unwrap();
 
@@ -45,7 +45,7 @@ fn main() -> () {
         program.push(parsed_line);
     }
 
-    let mut i = Interpreter::new(program.clone());
+    let mut i: Memory = Interpreter::new(program.clone());
 
     i.run();
 

@@ -1,24 +1,36 @@
 use super::types::*;
 
+use std::clone::Clone;
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
-pub struct Interpreter {
+pub struct Memory {
     instructions: Vec<Vec<AstNode>>,
-    pub memory: HashMap<String, DimensionedValue>,
+    pub memory: HashMap<String, DimensionedValue>, // TODO maybe DimensionedValue { unit, power, value }
 }
 
-// https://github.com/iliekturtles/uom/issues/391
+pub trait Interpreter {
+    fn new(instructions: Vec<Vec<AstNode>>) -> Self;
+    fn run(&mut self) -> ();
+    fn evaluate(&self, expression: AstNode) -> DimensionedValue;
+    fn evaluate_expression(
+        &self,
+        operation: BinaryOperation,
+        lhs: Box<AstNode>,
+        rhs: Box<AstNode>,
+    ) -> DimensionedValue;
+}
 
-impl Interpreter {
-    pub fn new(instructions: Vec<Vec<AstNode>>) -> Interpreter {
-        Interpreter {
+impl Interpreter for Memory {
+    fn new(instructions: Vec<Vec<AstNode>>) -> Self {
+        Memory {
             instructions: instructions,
             memory: HashMap::new(),
         }
     }
 
-    pub fn run(&mut self) -> () {
+    fn run(&mut self) -> () {
         for line in &self.instructions {
             for variable in line {
                 println!("\nCalculating {:#?}", variable.clone());
@@ -38,7 +50,11 @@ impl Interpreter {
                     _ => panic!("Variable should be of type AstNode::Variable"),
                 };
 
-                println!("\nStoring result {:#?}", dimensioned_value.clone());
+                println!(
+                    "\nStoring result {:#?} = {:#?}",
+                    name.clone(),
+                    dimensioned_value.clone()
+                );
                 self.memory.insert(name, dimensioned_value);
                 println!("=================================\n\n");
             }
@@ -46,18 +62,23 @@ impl Interpreter {
     }
 
     fn evaluate(&self, expression: AstNode) -> DimensionedValue {
-        let value = match expression {
-            AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
+        match expression {
+            AstNode::Name(name) => self.memory[&name].clone(),
+            AstNode::Double { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
+            AstNode::Vector { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
             AstNode::Expression {
                 operation,
                 lhs,
                 rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
-        };
-
-        value
+            _ => panic!("1 Expression should be of type AstNode::Expression, AstNode::Double, AstNode::Vector, or AstNode::Name, found: {:#?}", expression),
+        }
     }
 
     fn evaluate_expression(
@@ -67,25 +88,39 @@ impl Interpreter {
         rhs: Box<AstNode>,
     ) -> DimensionedValue {
         let lhs_value = match *lhs {
-            AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
+            AstNode::Name(name) => self.memory[&name].clone(),
+            AstNode::Double { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
+            AstNode::Vector { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
             AstNode::Expression {
                 operation,
                 lhs,
                 rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double"),
+            _ => panic!("2 Expression should be of type AstNode::Expression, AstNode::Double, AstNode::Vector, or AstNode::Name, found: {:#?}", lhs),
         };
 
         let rhs_value = match *rhs {
-            AstNode::Name(name) => self.memory[&name],
-            AstNode::Double { value, dimension } => DimensionedValue { value, dimension },
+            AstNode::Name(name) => self.memory[&name].clone(),
+            AstNode::Double { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
+            AstNode::Vector { value, dimension } => DimensionedValue {
+                value: value,
+                dimension: dimension,
+            },
             AstNode::Expression {
                 operation,
                 lhs,
                 rhs,
             } => self.evaluate_expression(operation, lhs, rhs),
-            _ => panic!("Expression should be of type AstNode::Expression or AstNode::Double",),
+            _ => panic!("3 Expression should be of type AstNode::Expression, AstNode::Double, AstNode::Vector, or AstNode::Name, found: {:#?}", rhs),
         };
 
         match operation {
@@ -99,18 +134,28 @@ impl Interpreter {
 
 #[test]
 fn test_interpreter() {
-    let i = Interpreter::new(vec![vec![AstNode::Variable {
+    let i: Memory = Interpreter::new(vec![vec![AstNode::Variable {
         name: Box::new(AstNode::Name("var".to_string())),
         expr: Box::new(AstNode::Expression {
             operation: BinaryOperation::Divide,
             lhs: Box::new(AstNode::Double {
-                value: 2.0,
-                dimension: Dimension::Length { unit: Unit::Meter },
+                value: Value::Float(2.0),
+                dimension: Dimension::Length {
+                    unit: Unit {
+                        unit: UnitIdentity::Meter,
+                        conversion_factor: 1.0,
+                    },
+                    power: 1,
+                },
             }),
             rhs: Box::new(AstNode::Double {
-                value: 2.0,
+                value: Value::Float(2.0),
                 dimension: Dimension::Length {
-                    unit: Unit::Kilometer,
+                    unit: Unit {
+                        unit: UnitIdentity::Kilometer,
+                        conversion_factor: 1000.0,
+                    },
+                    power: 1,
                 },
             }),
         }),
