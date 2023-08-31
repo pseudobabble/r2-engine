@@ -738,3 +738,34 @@ pub enum AstNode {
         expr: Box<AstNode>,
     },
 }
+
+fn simplify(quantity: Quantity) -> Quantity {
+    // if the two sides are the same type
+    // add or subtract
+    // otherwise try to simplify
+    quantity
+}
+
+#[test]
+fn test_simplify() {
+    assert_eq!(
+        Quantity::CompoundQuantity {
+            operation: BinaryOperation::Divide,
+            lhs: Box::new(Quantity::Length(2)),
+            rhs: Box::new(Quantity::Time(1))
+        },
+        simplify(Quantity::CompoundQuantity {
+            operation: BinaryOperation::Add,
+            lhs: Box::new(Quantity::CompoundQuantity {
+                operation: BinaryOperation::Divide,
+                lhs: Box::new(Quantity::Length(2)),
+                rhs: Box::new(Quantity::Time(1))
+            }),
+            rhs: Box::new(Quantity::CompoundQuantity {
+                operation: BinaryOperation::Divide,
+                lhs: Box::new(Quantity::Length(2)),
+                rhs: Box::new(Quantity::Time(1))
+            })
+        })
+    );
+}
